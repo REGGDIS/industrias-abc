@@ -1,15 +1,23 @@
--- INDUSTRIAS ABC | BUSINESS INTELLIGENCE
--- Sistema Operacional de Producción
--- schema.sql | Modelo Lógico v0.1
--- Responsable: Joaquín Medina | 26-08-2026
-
 CREATE DATABASE IF NOT EXISTS industrias_abc_produccion
     CHARACTER SET utf8mb4
-    COLLATE utf8mb4_0900_ai_ci;
+    COLLATE utf8mb4_unicode_ci;
 
 USE industrias_abc_produccion;
 
-CREATE TABLE IF NOT EXISTS productos (
+-- ============================================================
+-- LIMPIEZA PARA EJECUCIÓN REPRODUCIBLE
+-- Se eliminan las tablas en orden inverso a sus dependencias.
+-- ============================================================
+
+DROP TABLE IF EXISTS consumo_insumos;
+DROP TABLE IF EXISTS ordenes_produccion;
+DROP TABLE IF EXISTS productos;
+
+-- ============================================================
+-- CREACIÓN DE TABLAS
+-- ============================================================
+
+CREATE TABLE productos (
     producto_id BIGINT NOT NULL AUTO_INCREMENT,
     codigo_producto VARCHAR(50) NOT NULL,
     nombre_producto VARCHAR(150) NOT NULL,
@@ -19,7 +27,7 @@ CREATE TABLE IF NOT EXISTS productos (
     CONSTRAINT uq_productos_codigo UNIQUE (codigo_producto)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS ordenes_produccion (
+CREATE TABLE ordenes_produccion (
     orden_produccion_id BIGINT NOT NULL AUTO_INCREMENT,
     numero_orden VARCHAR(50) NOT NULL,
     producto_id BIGINT NOT NULL,
@@ -45,7 +53,7 @@ CREATE TABLE IF NOT EXISTS ordenes_produccion (
     INDEX idx_ordenes_producto (producto_id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS consumo_insumos (
+CREATE TABLE consumo_insumos (
     consumo_id BIGINT NOT NULL AUTO_INCREMENT,
     orden_produccion_id BIGINT NOT NULL,
     insumo_id BIGINT NOT NULL,
@@ -62,13 +70,3 @@ CREATE TABLE IF NOT EXISTS consumo_insumos (
     INDEX idx_consumo_orden (orden_produccion_id),
     INDEX idx_consumo_insumo (insumo_id)
 ) ENGINE=InnoDB;
-
--- NOTAS:
--- 1. codigo_producto y numero_orden ya generan índices por UNIQUE;
---    no se duplican con índices adicionales.
--- 2. insumo_id y centro_costo_id son referencias lógicas locales:
---    no poseen FK físicas hacia otros sistemas.
--- 3. El Modelo Lógico no define valores cerrados para estado;
---    por ello se mantiene VARCHAR(30) NOT NULL.
--- 4. La coherencia entre fecha_consumo y el período de la orden
---    requiere validación posterior en validaciones.sql.
