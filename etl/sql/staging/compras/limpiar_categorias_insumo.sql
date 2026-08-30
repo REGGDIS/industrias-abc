@@ -2,16 +2,19 @@
 -- ETL Compras 0.1 · Staging (limpieza) · tabla: categorias_insumo
 -- Dominio: Compras y Abastecimiento (PostgreSQL) · Responsable: Raymond Civil
 --
--- Lee el dato RAW (stg_compras_categorias_insumo_raw) —poblado por la
--- extracción de categorias_insumo— y aplica transformaciones EXPLÍCITAS:
---   TRIM  = quita espacios sobrantes al inicio/fin
---   UPPER = normaliza el texto a mayúsculas (para comparar/homologar)
--- Conserva el ID local y la clave de negocio (codigo_categoria).
--- Nota: script agregado por consistencia con la extracción (10 tablas).
+-- Funciones SQL aplicadas en este script (según corresponde a sus campos): TRIM, UPPER.
+--   TRIM  = quita espacios sobrantes | UPPER = normaliza a mayúsculas
+--   NULLIF(x,'') = cadena vacía -> NULL | CAST = fija el tipo (DATE / NUMERIC)
+-- Conserva los IDs locales y las claves de negocio (trazabilidad).
+--
+-- Origen: stg_compras_categorias_insumo_raw = dato RAW poblado por la extracción de categorias_insumo.
+-- Validación local: esa tabla RAW se materializó como fixture temporal
+--   (CREATE TABLE stg_compras_categorias_insumo_raw AS <extracción de categorias_insumo>) en un PostgreSQL de prueba,
+--   y luego se ejecutó este script. El fixture NO forma parte del ETL Core.
 -- =====================================================================
 
 SELECT
-    categoria_id,                                    -- ID local (se preserva)
+    categoria_id,                                        -- ID local (se preserva)
     UPPER(TRIM(codigo_categoria))  AS codigo_categoria,  -- clave de negocio
     UPPER(TRIM(nombre_categoria))  AS nombre_categoria
 FROM stg_compras_categorias_insumo_raw;

@@ -7,11 +7,12 @@
 ## Qué es la homologación
 
 **Homologar** es reconocer que **un mismo objeto del mundo real** (un área, un
-proveedor, un insumo) aparece en **varias bases operacionales** y **hacerlos
-corresponder** para poder integrarlos en el Data Warehouse. Como cada fuente es
-**independiente**, la correspondencia no puede basarse en los identificadores
-internos: debe basarse en **claves de negocio** —atributos estables y
-significativos que representan al objeto igual en todas las fuentes.
+proveedor, un insumo) puede aparecer en **varias bases operacionales** y hacerlos
+corresponder para integrarlos más adelante en el Data Warehouse. Como cada fuente
+es **independiente**, la correspondencia no puede basarse en los identificadores
+internos: debe apoyarse en **claves de negocio** —atributos estables y
+significativos. Esta correspondencia se **definirá y cerrará en el ETL Core**;
+aquí solo se **identifican las claves candidatas** del dominio Compras.
 
 ## Por qué NO se usan los IDs locales
 
@@ -20,54 +21,65 @@ Los IDs de cada base (`area_id`, `insumo_id`, `comprador_id`, …) se generan co
 Por eso:
 
 - El `area_id = 4` de **Compras** representa "Compras y Abastecimiento", pero el
-  `area_id = 4` de **RRHH** puede ser otra área completamente distinta. **Mismo
-  número, objeto distinto** → cruzar por ID daría integraciones falsas.
-- Además, el proyecto exige **independencia de fuentes**: no hay FK físicas entre
-  bases, así que un ID de Compras **no tiene sentido** fuera de Compras.
+  `area_id = 4` de **RRHH** puede ser otra área distinta. **Mismo número, objeto
+  distinto** → cruzar por ID daría integraciones falsas.
+- El proyecto exige **independencia de fuentes**: no hay FK físicas entre bases, y
+  un ID de Compras **no tiene sentido** fuera de Compras.
 
-En cambio, la **clave de negocio** es estable entre fuentes: el `codigo_area`
-`A04` es "Compras y Abastecimiento" en Compras, en RRHH y en Contabilidad por
-igual (viene del Universo Master). Por eso se homologa por `codigo_area`,
-**no** por `area_id`.
+Por eso la homologación se apoyará en claves de negocio y **no** en los IDs
+internos. Los IDs locales se **conservan** en extracción y staging solo para
+**trazabilidad** (rastrear el registro hasta su fuente), nunca como equivalencia.
 
-> Regla: los IDs locales se **conservan** para trazabilidad (rastrear el registro
-> hasta su fuente), pero **nunca** se usan como equivalencia entre bases.
+## Matriz de claves de negocio (candidatas)
 
-## Matriz de claves de negocio (candidatas para homologación)
+> Importante: estas son **claves candidatas** para la homologación. **No** se
+> afirma que los códigos sean necesariamente iguales, en formato o en valor,
+> entre Compras, RRHH, Contabilidad o Producción. El Universo Master v0.2 es una
+> **referencia conceptual** —su propia hoja de Áreas indica que "los sistemas
+> operacionales pueden utilizar códigos o nombres distintos"—, por lo que cada
+> correspondencia deberá **confirmarse y cerrarse en el ETL Core** mediante reglas
+> de homologación.
 
-| Entidad | ID local (solo trazabilidad) | Clave de negocio candidata | Estabilidad | Uso futuro en la integración |
-|---|---|---|---|---|
-| Área | `area_id` | `codigo_area` | Alta (viene del Master) | Homologar áreas con RRHH y Contabilidad |
-| Centro de costo | `centro_costo_id` | `codigo_centro` | Alta (viene del Master) | Homologar centros de costo empresariales (con Contabilidad) |
-| Proveedor | `proveedor_id` | `rut_proveedor` | Alta (RUT es único e institucional) | Identificar al proveedor transversalmente |
-| Insumo | `insumo_id` | `codigo_insumo` | Alta | Relacionar Compras con Producción (mismo insumo) |
-| Categoría de insumo | `categoria_id` | `codigo_categoria` | Media/Alta | Homologar categorías de insumo si corresponde |
-| Orden de compra | `oc_id` | `numero_oc` | Alta (documento formal) | Trazabilidad del documento de compra |
-| Comprador | `comprador_id` | `codigo_comprador` (+ contexto) | Media | Posible homologación posterior con el trabajador de RRHH |
+| Entidad | ID local (solo trazabilidad) | Clave de negocio candidata | Uso futuro (a confirmar en ETL Core) |
+|---|---|---|---|
+| Área | `area_id` | `codigo_area` | Homologación con áreas de RRHH y Contabilidad, si los códigos resultan comparables |
+| Centro de costo | `centro_costo_id` | `codigo_centro` | Homologación de centros de costo (con Contabilidad), sujeta a confirmación |
+| Proveedor | `proveedor_id` | `rut_proveedor` | Identificación del proveedor; el RUT es una referencia institucional estable |
+| Insumo | `insumo_id` | `codigo_insumo` | Relación futura con Producción **por confirmar** (ver nota) |
+| Categoría de insumo | `categoria_id` | `codigo_categoria` | Homologación de categorías, si corresponde |
+| Orden de compra | `oc_id` | `numero_oc` | Trazabilidad interna del documento de compra |
+| Comprador | `comprador_id` | `codigo_comprador` (+ contexto) | Posible homologación posterior con el trabajador de RRHH |
 
-## Cómo funciona técnicamente (con lo visto en Clase 2)
+**Nota sobre Insumo ↔ Producción:** actualmente **Producción no cuenta con un
+catálogo físico que exponga `codigo_insumo`**. Por lo tanto, la correspondencia
+Compras–Producción por insumo **no puede afirmarse todavía** y deberá **cerrarse
+posteriormente**, cuando exista ese catálogo o se acuerde otra clave de negocio.
 
-La homologación se resuelve en el ETL con un **cruce de datos** (`JOIN`), tal como
-enseña la Clase 2 ("Cruce de datos: combinación de información de distintas fuentes
-mediante JOIN"). El cruce se hace **sobre la clave de negocio ya normalizada** en
-staging (por eso limpiamos con `TRIM`/`UPPER`: para que `A04` y ` a04 ` crucen).
+## Cómo funcionaría técnicamente (referencia, no se implementa aún)
 
-Ejemplo conceptual (etapa futura, no se implementa aún):
+La homologación se resolvería en el ETL con un **cruce de datos** (`JOIN`), tal
+como enseña la Clase 2 ("Cruce de datos mediante JOIN"), uniendo por la **clave de
+negocio candidata ya normalizada** en staging (por eso limpiamos con `TRIM`/`UPPER`).
+El criterio de cruce (igualdad de código, normalización, o una tabla de
+equivalencias) se **definirá en el ETL Core**; el ejemplo siguiente es ilustrativo:
 
 ```sql
--- Homologar áreas de Compras con las de RRHH por clave de negocio, NO por ID
+-- Ejemplo ILUSTRATIVO (no se implementa en esta etapa).
+-- El criterio real de correspondencia lo definirá el ETL Core.
 SELECT c.codigo_area,
-       c.area_id      AS area_id_compras,   -- ID local (trazabilidad)
-       r.area_id      AS area_id_rrhh        -- ID local del otro sistema
+       c.area_id  AS area_id_compras,   -- ID local (trazabilidad)
+       r.area_id  AS area_id_rrhh        -- ID local del otro sistema
 FROM   stg_compras_areas_limpio  c
 JOIN   stg_rrhh_areas_limpio     r
-       ON UPPER(TRIM(c.codigo_area)) = UPPER(TRIM(r.codigo_area));
+       ON UPPER(TRIM(c.codigo_area)) = UPPER(TRIM(r.codigo_area));  -- regla candidata, a confirmar
 ```
 
-## Notas de integración por concepto compartido (sin FK físicas)
+## Integración por concepto compartido (sin FK físicas)
 
-- **Insumo ↔ Producción:** mismo insumo por `codigo_insumo`.
-- **Centro de costo / Área ↔ Contabilidad:** por `codigo_centro` / `codigo_area`.
+- **Insumo ↔ Producción:** por `codigo_insumo` **cuando exista** el catálogo
+  correspondiente en Producción (hoy no está disponible; a cerrar después).
+- **Centro de costo / Área ↔ Contabilidad:** por `codigo_centro` / `codigo_area`,
+  sujeto a confirmación de comparabilidad.
 - **Comprador ↔ RRHH:** el comprador podrá homologarse posteriormente con el
   trabajador de RRHH mediante reglas de integración (no por ID).
 
@@ -75,6 +87,6 @@ JOIN   stg_rrhh_areas_limpio     r
 
 Estas son **claves candidatas para el trabajo ETL**, no claves del Data Warehouse.
 La clave definitiva de una dimensión o tabla de hechos (clave subrogada del DW) se
-decidirá cuando se diseñe el modelo dimensional. Si alguna decisión afectara el
-significado de Área, Centro de costo, Insumo, Proveedor o Comprador en otras
-fuentes, debe **consultarse con el equipo** antes de fijarla como regla transversal.
+decidirá al diseñar el modelo dimensional. Cualquier decisión que afecte el
+significado de Área, Centro de costo, Insumo, Proveedor o Comprador entre fuentes
+debe **consultarse con el equipo** antes de fijarse como regla transversal.
