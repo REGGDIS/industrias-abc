@@ -50,9 +50,9 @@ criterio real (igualdad de código, tabla de equivalencias, o reglas adicionales
 -- Ejemplo ILUSTRATIVO (no se implementa en esta etapa). Criterio real: ETL Core.
 SELECT c.codigo_area,
        c.area_id AS area_id_contabilidad,   -- ID local (trazabilidad)
-       r.area_id AS area_id_rrhh              -- ID local del otro sistema
-FROM   stg_contabilidad_areas_limpio c
-JOIN   stg_rrhh_areas_limpio          r
+       r.area_id AS area_id_rrhh            -- ID local del otro sistema
+FROM   stg_contabilidad_areas_clean c
+JOIN   stg_rrhh_areas_clean          r
        ON UPPER(TRIM(c.codigo_area)) = UPPER(TRIM(r.codigo_area));  -- regla candidata, a confirmar
 ```
 
