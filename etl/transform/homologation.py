@@ -80,3 +80,57 @@ def compare_entity_refs(
         target_normalized=target_normalized,
         status=status,
     )
+
+
+def homologate_entity_collections(
+    sources: list[BusinessEntityRef],
+    targets: list[BusinessEntityRef],
+) -> list[EntityHomologationResult]:
+    results: list[EntityHomologationResult] = []
+
+    for source in sources:
+        source_matches = [
+            target
+            for target in targets
+            if source.normalized_code is not None
+            and target.normalized_code == source.normalized_code
+        ]
+
+        if len(source_matches) == 1:
+            results.append(
+                compare_entity_refs(
+                    source,
+                    source_matches[0],
+                )
+            )
+            continue
+
+        if len(source_matches) > 1:
+            for target in source_matches:
+                comparison = compare_entity_refs(
+                    source,
+                    target,
+                )
+
+                results.append(
+                    EntityHomologationResult(
+                        source=comparison.source,
+                        target=comparison.target,
+                        source_normalized=comparison.source_normalized,
+                        target_normalized=comparison.target_normalized,
+                        status="REVIEW",
+                    )
+                )
+
+            continue
+
+        for target in targets:
+            if source.entity == target.entity:
+                results.append(
+                    compare_entity_refs(
+                        source,
+                        target,
+                    )
+                )
+
+    return results

@@ -11,6 +11,13 @@ from etl.transform.homologation import (
     compare_business_codes,
     compare_entity_refs,
 )
+from etl.transform.homologation import (
+    BusinessEntityRef,
+    EntityHomologationResult,
+    compare_business_codes,
+    compare_entity_refs,
+    homologate_entity_collections,
+)
 
 
 def test_compare_business_codes_match():
@@ -153,3 +160,142 @@ def test_compare_entity_refs_different_entity_types_require_review():
     result = compare_entity_refs(source, target)
 
     assert result.status == "REVIEW"
+
+
+def test_homologate_entity_collections_unique_match():
+    sources = [
+        BusinessEntityRef(
+            source="fuente_a",
+            entity="area",
+            local_id=1,
+            business_code="A01",
+        ),
+        BusinessEntityRef(
+            source="fuente_a",
+            entity="area",
+            local_id=2,
+            business_code="A02",
+        ),
+    ]
+
+    targets = [
+        BusinessEntityRef(
+            source="fuente_b",
+            entity="area",
+            local_id=100,
+            business_code="A01",
+        ),
+        BusinessEntityRef(
+            source="fuente_b",
+            entity="area",
+            local_id=200,
+            business_code="A02",
+        ),
+    ]
+
+    results = homologate_entity_collections(
+        sources,
+        targets,
+    )
+
+    matches = [
+        result
+        for result in results
+        if result.status == "MATCH"
+    ]
+
+    assert len(matches) == 2
+
+
+def test_homologate_entity_collections_detects_no_match():
+    sources = [
+        BusinessEntityRef(
+            source="fuente_a",
+            entity="area",
+            local_id=1,
+            business_code="A01",
+        ),
+    ]
+
+    targets = [
+        BusinessEntityRef(
+            source="fuente_b",
+            entity="area",
+            local_id=100,
+            business_code="A99",
+        ),
+    ]
+
+    results = homologate_entity_collections(
+        sources,
+        targets,
+    )
+
+    assert len(results) == 1
+    assert results[0].status == "NO_MATCH"
+
+
+def test_homologate_entity_collections_duplicate_code_requires_review():
+    sources = [
+        BusinessEntityRef(
+            source="fuente_a",
+            entity="area",
+            local_id=1,
+            business_code="A01",
+        ),
+    ]
+
+    targets = [
+        BusinessEntityRef(
+            source="fuente_b",
+            entity="area",
+            local_id=100,
+            business_code="A01",
+        ),
+        BusinessEntityRef(
+            source="fuente_b",
+            entity="area",
+            local_id=200,
+            business_code=" a01 ",
+        ),
+    ]
+
+    results = homologate_entity_collections(
+        sources,
+        targets,
+    )
+
+    assert len(results) == 2
+
+    assert all(
+        result.status == "REVIEW"
+        for result in results
+    )
+
+
+def test_homologate_entity_collections_missing_code_requires_review():
+    sources = [
+        BusinessEntityRef(
+            source="fuente_a",
+            entity="area",
+            local_id=1,
+            business_code=None,
+        ),
+    ]
+
+    targets = [
+        BusinessEntityRef(
+            source="fuente_b",
+            entity="area",
+            local_id=100,
+            business_code="A01",
+        ),
+    ]
+
+    results = homologate_entity_collections(
+        sources,
+        targets,
+    )
+
+    assert len(results) == 1
+    assert results[0].status == "REVIEW"
