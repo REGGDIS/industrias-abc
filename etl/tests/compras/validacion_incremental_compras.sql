@@ -8,7 +8,11 @@
 --   (2) la comparación de snapshot detecta UPDATE (órdenes y recepciones)
 --       y excluye las filas sin cambios.
 -- Cada prueba corre dentro de BEGIN … ROLLBACK con tablas TEMP, respetando
--- FK, CHECK, dominios de estado y triggers. Ejecutar con:  psql -f este_archivo
+-- FK, CHECK, dominios de estado y triggers. En las pruebas de INSERT se usa
+-- OVERRIDING SYSTEM VALUE con un ID explícito (watermark + 1) para evitar
+-- avanzar las secuencias identity, ya que las secuencias de PostgreSQL no
+-- retroceden con ROLLBACK.
+-- Ejecutar con:  psql -f este_archivo
 -- =====================================================================
 \echo '################ VALIDACIÓN INCREMENTAL COMPRAS 0.2 ################'
 
@@ -21,10 +25,11 @@ BEGIN;
 SELECT MAX(oc_id) AS wm_oc FROM ordenes_compra \gset
 \echo '  Watermark inicial (ultimo_oc_id):' :wm_oc
 INSERT INTO ordenes_compra
-    (numero_oc, proveedor_id, fecha_emision, fecha_requerida,
+    (oc_id, numero_oc, proveedor_id, fecha_emision, fecha_requerida,
      centro_costo_id, comprador_id, estado, moneda, subtotal, impuesto, total)
+OVERRIDING SYSTEM VALUE
 VALUES
-    ('OC-TEST-9999', 1, DATE '2026-07-01', DATE '2026-07-10',
+    (:wm_oc + 1, 'OC-TEST-9999', 1, DATE '2026-07-01', DATE '2026-07-10',
      1, 1, 'EMITIDA', 'CLP', 1000.00, 190.00, 1190.00);
 \echo '  Esperado: aparece SOLO la orden nueva (oc_id > watermark):'
 SELECT oc_id, numero_oc, estado
@@ -45,8 +50,9 @@ ROLLBACK;
 BEGIN;
 SELECT MAX(recepcion_id) AS wm_rec FROM recepciones \gset
 \echo '  Watermark inicial (ultima_recepcion_id):' :wm_rec
-INSERT INTO recepciones (oc_id, fecha_recepcion, estado)
-VALUES ((SELECT MIN(oc_id) FROM ordenes_compra), DATE '2026-12-31', 'REGISTRADA');
+INSERT INTO recepciones (recepcion_id, oc_id, fecha_recepcion, estado)
+OVERRIDING SYSTEM VALUE
+VALUES (:wm_rec + 1, (SELECT MIN(oc_id) FROM ordenes_compra), DATE '2026-12-31', 'REGISTRADA');
 \echo '  Esperado: aparece SOLO la recepción nueva (recepcion_id > watermark):'
 SELECT recepcion_id, oc_id, fecha_recepcion, estado
 FROM recepciones
@@ -115,4 +121,4 @@ ORDER BY actual.recepcion_id;
 ROLLBACK;
 
 \echo ''
-\echo '################ FIN — el seed NO fue modificado (todo en ROLLBACK) ################'
+\echo '################ FIN — datos y secuencias identity no fueron modificados ################'
