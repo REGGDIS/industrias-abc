@@ -48,11 +48,35 @@ class BusinessEntityRef:
         return normalize_business_code(self.business_code)
 
 
+@dataclass(frozen=True)
+class EntityHomologationResult:
+    source: BusinessEntityRef
+    target: BusinessEntityRef
+    source_normalized: str | None
+    target_normalized: str | None
+    status: str
+
+
 def compare_entity_refs(
     source: BusinessEntityRef,
     target: BusinessEntityRef,
-) -> HomologationResult:
-    return compare_business_codes(
-        source.business_code,
-        target.business_code,
+) -> EntityHomologationResult:
+    source_normalized = source.normalized_code
+    target_normalized = target.normalized_code
+
+    if source.entity != target.entity:
+        status = "REVIEW"
+    else:
+        comparison = compare_business_codes(
+            source.business_code,
+            target.business_code,
+        )
+        status = comparison.status
+
+    return EntityHomologationResult(
+        source=source,
+        target=target,
+        source_normalized=source_normalized,
+        target_normalized=target_normalized,
+        status=status,
     )

@@ -5,6 +5,12 @@ from etl.transform.homologation import (
     compare_business_codes,
     compare_entity_refs,
 )
+from etl.transform.homologation import (
+    BusinessEntityRef,
+    EntityHomologationResult,
+    compare_business_codes,
+    compare_entity_refs,
+)
 
 
 def test_compare_business_codes_match():
@@ -98,3 +104,52 @@ def test_compare_entity_refs_ignores_local_ids():
     result = compare_entity_refs(source, target)
 
     assert result.status == "NO_MATCH"
+
+
+def test_compare_entity_refs_preserves_traceability():
+    source = BusinessEntityRef(
+        source="fuente_a",
+        entity="area",
+        local_id=10,
+        business_code="A01",
+        display_name="Área Uno",
+    )
+
+    target = BusinessEntityRef(
+        source="fuente_b",
+        entity="area",
+        local_id=200,
+        business_code=" a01 ",
+        display_name="AREA UNO",
+    )
+
+    result = compare_entity_refs(source, target)
+
+    assert isinstance(result, EntityHomologationResult)
+    assert result.source.source == "fuente_a"
+    assert result.source.local_id == 10
+    assert result.target.source == "fuente_b"
+    assert result.target.local_id == 200
+    assert result.source_normalized == "A01"
+    assert result.target_normalized == "A01"
+    assert result.status == "MATCH"
+
+
+def test_compare_entity_refs_different_entity_types_require_review():
+    source = BusinessEntityRef(
+        source="fuente_a",
+        entity="area",
+        local_id=1,
+        business_code="ADM",
+    )
+
+    target = BusinessEntityRef(
+        source="fuente_b",
+        entity="cargo",
+        local_id=1,
+        business_code="ADM",
+    )
+
+    result = compare_entity_refs(source, target)
+
+    assert result.status == "REVIEW"
