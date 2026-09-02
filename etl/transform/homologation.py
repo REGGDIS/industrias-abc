@@ -82,19 +82,70 @@ def compare_entity_refs(
     )
 
 
+def build_entity_index(
+    entities: list[BusinessEntityRef],
+) -> dict[tuple[str, str], list[BusinessEntityRef]]:
+    index: dict[tuple[str, str], list[BusinessEntityRef]] = {}
+
+    for entity in entities:
+        normalized_code = entity.normalized_code
+
+        if normalized_code is None:
+            continue
+
+        key = (
+            entity.entity,
+            normalized_code,
+        )
+
+        index.setdefault(key, []).append(entity)
+
+    return index
+
+
 def homologate_entity_collections(
     sources: list[BusinessEntityRef],
     targets: list[BusinessEntityRef],
 ) -> list[EntityHomologationResult]:
     results: list[EntityHomologationResult] = []
 
+    target_index = build_entity_index(targets)
+
+    targets_by_entity: dict[str, list[BusinessEntityRef]] = {}
+
+    for target in targets:
+        targets_by_entity.setdefault(
+            target.entity,
+            [],
+        ).append(target)
+
     for source in sources:
-        source_matches = [
-            target
-            for target in targets
-            if source.normalized_code is not None
-            and target.normalized_code == source.normalized_code
-        ]
+        source_normalized = source.normalized_code
+        same_entity_targets = targets_by_entity.get(
+            source.entity,
+            [],
+        )
+
+        if source_normalized is None:
+            if same_entity_targets:
+                results.append(
+                    compare_entity_refs(
+                        source,
+                        same_entity_targets[0],
+                    )
+                )
+
+            continue
+
+        key = (
+            source.entity,
+            source_normalized,
+        )
+
+        source_matches = target_index.get(
+            key,
+            [],
+        )
 
         if len(source_matches) == 1:
             results.append(
@@ -124,14 +175,13 @@ def homologate_entity_collections(
 
             continue
 
-        for target in targets:
-            if source.entity == target.entity:
-                results.append(
-                    compare_entity_refs(
-                        source,
-                        target,
-                    )
+        if same_entity_targets:
+            results.append(
+                compare_entity_refs(
+                    source,
+                    same_entity_targets[0],
                 )
+            )
 
     return results
 
@@ -149,7 +199,16 @@ def summarize_homologation_results(
 ) -> HomologationSummary:
     return HomologationSummary(
         total=len(results),
-        match=sum(result.status == "MATCH" for result in results),
-        no_match=sum(result.status == "NO_MATCH" for result in results),
-        review=sum(result.status == "REVIEW" for result in results),
+        match=sum(
+            result.status == "MATCH"
+            for result in results
+        ),
+        no_match=sum(
+            result.status == "NO_MATCH"
+            for result in results
+        ),
+        review=sum(
+            result.status == "REVIEW"
+            for result in results
+        ),
     )
