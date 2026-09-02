@@ -134,3 +134,22 @@ def homologate_entity_collections(
                 )
 
     return results
+
+
+@dataclass(frozen=True)
+class HomologationSummary:
+    total: int
+    match: int
+    no_match: int
+    review: int
+
+
+def summarize_homologation_results(
+    results: list[EntityHomologationResult],
+) -> HomologationSummary:
+    return HomologationSummary(
+        total=len(results),
+        match=sum(result.status == "MATCH" for result in results),
+        no_match=sum(result.status == "NO_MATCH" for result in results),
+        review=sum(result.status == "REVIEW" for result in results),
+    )

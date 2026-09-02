@@ -2,21 +2,12 @@ import pytest
 
 from etl.transform.homologation import (
     BusinessEntityRef,
-    compare_business_codes,
-    compare_entity_refs,
-)
-from etl.transform.homologation import (
-    BusinessEntityRef,
     EntityHomologationResult,
-    compare_business_codes,
-    compare_entity_refs,
-)
-from etl.transform.homologation import (
-    BusinessEntityRef,
-    EntityHomologationResult,
+    HomologationSummary,
     compare_business_codes,
     compare_entity_refs,
     homologate_entity_collections,
+    summarize_homologation_results,
 )
 
 
@@ -299,3 +290,56 @@ def test_homologate_entity_collections_missing_code_requires_review():
 
     assert len(results) == 1
     assert results[0].status == "REVIEW"
+
+
+def test_summarize_homologation_results_counts_statuses():
+    source = BusinessEntityRef(
+        source="fuente_a",
+        entity="area",
+        local_id=1,
+        business_code="A01",
+    )
+
+    target_match = BusinessEntityRef(
+        source="fuente_b",
+        entity="area",
+        local_id=10,
+        business_code="A01",
+    )
+
+    target_no_match = BusinessEntityRef(
+        source="fuente_b",
+        entity="area",
+        local_id=20,
+        business_code="A99",
+    )
+
+    target_review = BusinessEntityRef(
+        source="fuente_b",
+        entity="cargo",
+        local_id=30,
+        business_code="A01",
+    )
+
+    results = [
+        compare_entity_refs(source, target_match),
+        compare_entity_refs(source, target_no_match),
+        compare_entity_refs(source, target_review),
+    ]
+
+    summary = summarize_homologation_results(results)
+
+    assert isinstance(summary, HomologationSummary)
+    assert summary.total == 3
+    assert summary.match == 1
+    assert summary.no_match == 1
+    assert summary.review == 1
+
+
+def test_summarize_homologation_results_empty():
+    summary = summarize_homologation_results([])
+
+    assert summary.total == 0
+    assert summary.match == 0
+    assert summary.no_match == 0
+    assert summary.review == 0
