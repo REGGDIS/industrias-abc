@@ -33,3 +33,26 @@ def compare_business_codes(
         target_normalized=target_normalized,
         status=status,
     )
+
+
+@dataclass(frozen=True)
+class BusinessEntityRef:
+    source: str
+    entity: str
+    local_id: int | str
+    business_code: str | None
+    display_name: str | None = None
+
+    @property
+    def normalized_code(self) -> str | None:
+        return normalize_business_code(self.business_code)
+
+
+def compare_entity_refs(
+    source: BusinessEntityRef,
+    target: BusinessEntityRef,
+) -> HomologationResult:
+    return compare_business_codes(
+        source.business_code,
+        target.business_code,
+    )
