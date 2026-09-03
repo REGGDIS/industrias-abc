@@ -48,13 +48,21 @@ def print_results(title, results):
     print("-" * len(title))
 
     for result in results:
+        source_name = (result.source.display_name or "").strip()
+        target_name = (result.target.display_name or "").strip()
+
+        names_match = source_name.casefold() == target_name.casefold()
+        name_status = "OK" if names_match else "DIFERENTE"
+
         print(
-            f"{result.source.source}:{result.source.local_id} "
-            f"{result.source.business_code} "
-            f"-> "
-            f"{result.target.source}:{result.target.local_id} "
-            f"{result.target.business_code} "
-            f"[{result.status}]"
+            f'{result.source.source}:{result.source.local_id} '
+            f'{result.source.business_code} '
+            f'"{source_name}" '
+            f'-> '
+            f'{result.target.source}:{result.target.local_id} '
+            f'{result.target.business_code} '
+            f'"{target_name}" '
+            f'[{result.status} | nombre={name_status}]'
         )
 
     summary = summarize_homologation_results(results)
