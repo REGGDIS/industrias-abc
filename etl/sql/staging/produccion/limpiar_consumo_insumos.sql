@@ -12,4 +12,5 @@ INNER JOIN ordenes_produccion op
 WHERE ci.insumo_id IS NOT NULL
   AND ci.cantidad_planificada >= 0
   AND ci.cantidad_consumida >= 0
-  AND ci.fecha_consumo IS NOT NULL;
+  AND ci.fecha_consumo IS NOT NULL
+  AND ci.cantidad_consumida <= ci.cantidad_planificada;

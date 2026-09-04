@@ -84,6 +84,11 @@ def validate_csv_consumo(row: CsvConsumoProduccion) -> list[str]:
     if row.cantidad_consumida < 0:
         errors.append("cantidad_consumida negativa")
 
+    if row.cantidad_consumida > row.cantidad_planificada:
+        errors.append(
+            "cantidad_consumida mayor que cantidad_planificada"
+        )
+
     return errors
 
 

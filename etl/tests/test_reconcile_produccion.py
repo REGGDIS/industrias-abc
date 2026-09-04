@@ -111,3 +111,20 @@ def test_validate_csv_detects_invalid_identifiers():
 
 def test_parse_date_iso():
     assert parse_date("2026-08-18") == date(2026, 8, 18)
+
+
+def test_validate_csv_detects_consumed_greater_than_planned():
+    row = CsvConsumoProduccion(
+        numero_orden="OP-2026-0001",
+        insumo_codigo_o_referencia="INS-1001",
+        cantidad_planificada=Decimal("100"),
+        cantidad_consumida=Decimal("150"),
+        fecha_consumo=date(2026, 8, 1),
+    )
+
+    errors = validate_csv_consumo(row)
+
+    assert (
+        "cantidad_consumida mayor que cantidad_planificada"
+        in errors
+    )
