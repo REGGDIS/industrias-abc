@@ -196,8 +196,12 @@ WHERE d.detalle_id=11;
 
 -- ---------------------------------------------------------------------
 -- 7) Conteo global PASA/FALLA
+--    Además de informar el resultado, el script falla realmente si
+--    cualquier caso no cumple lo esperado.
 -- ---------------------------------------------------------------------
 \echo '=== CONTEO GLOBAL ==='
+
+CREATE TEMP TABLE tmp_resultado_global ON COMMIT DROP AS
 WITH casos(entidad, id_reg, regla, esperado) AS (VALUES
     ('detalle_orden_compra',  1, 'CANTIDAD_POSITIVA',        0),
     ('ordenes_compra',        1, 'PROVEEDOR_VALIDO',         0),
@@ -223,10 +227,36 @@ SELECT COUNT(*) AS total_casos,
        COUNT(*) FILTER (WHERE NOT ok) AS falla
 FROM (
     SELECT c.esperado =
-           (SELECT COUNT(*) FROM stg_incidencias s
-             WHERE s.entidad=c.entidad AND s.id_registro=c.id_reg AND s.regla=c.regla) AS ok
+           (
+               SELECT COUNT(*)
+               FROM stg_incidencias s
+               WHERE s.entidad = c.entidad
+                 AND s.id_registro = c.id_reg
+                 AND s.regla = c.regla
+           ) AS ok
     FROM casos c
 ) q;
+
+SELECT total_casos, pasa, falla
+FROM tmp_resultado_global;
+
+-- Aserción real: con ON_ERROR_STOP, cualquier fallo provoca código de
+-- salida distinto de cero en psql.
+DO $$
+DECLARE
+    v_falla INTEGER;
+BEGIN
+    SELECT falla
+    INTO v_falla
+    FROM tmp_resultado_global;
+
+    IF v_falla <> 0 THEN
+        RAISE EXCEPTION
+            'Pruebas de calidad Compras fallidas: % caso(s) no pasaron',
+            v_falla;
+    END IF;
+END
+$$;
 
 ROLLBACK;
 -- Fin de test_calidad_compras.sql  (ROLLBACK: no persiste ningun cambio)
