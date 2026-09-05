@@ -2,6 +2,7 @@ from pathlib import Path
 
 from etl.config.settings import get_rrhh_db_config
 from etl.extract.postgres import get_postgres_connection
+from etl.load.staging import build_postgres_clean_table_sql
 
 
 SQL_DIR = Path(__file__).resolve().parents[1] / "sql" / "staging" / "rrhh"
@@ -66,23 +67,10 @@ def load_empleados_raw(rows: list[dict]):
 
 
 def create_empleados_clean_table():
-    sql_path = SQL_DIR / "limpiar_empleados.sql"
-    select_sql = sql_path.read_text(encoding="utf-8").strip().rstrip(";")
-
-    sql = f"""
-        DROP TABLE IF EXISTS stg_rrhh_empleados_clean;
-
-        CREATE TABLE stg_rrhh_empleados_clean AS
-        {select_sql};
-    """
-
-    config = get_rrhh_db_config()
-
-    with get_postgres_connection(config) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(sql)
-
-        connection.commit()
+    _create_clean_table(
+        "empleados",
+        "limpiar_empleados.sql",
+    )
 
 
 def _execute_staging_sql(filename: str):
@@ -194,18 +182,17 @@ def load_centros_costo_raw(rows: list[dict]):
 
 
 def _create_clean_table(
-    clean_table: str,
+    entity: str,
     sql_filename: str,
 ):
     sql_path = SQL_DIR / sql_filename
-    select_sql = sql_path.read_text(encoding="utf-8").strip().rstrip(";")
+    select_sql = sql_path.read_text(encoding="utf-8")
 
-    sql = f"""
-        DROP TABLE IF EXISTS {clean_table};
-
-        CREATE TABLE {clean_table} AS
-        {select_sql};
-    """
+    sql = build_postgres_clean_table_sql(
+        source="rrhh",
+        entity=entity,
+        select_sql=select_sql,
+    )
 
     config = get_rrhh_db_config()
 
@@ -218,20 +205,20 @@ def _create_clean_table(
 
 def create_areas_clean_table():
     _create_clean_table(
-        "stg_rrhh_areas_clean",
+        "areas",
         "limpiar_areas.sql",
     )
 
 
 def create_cargos_clean_table():
     _create_clean_table(
-        "stg_rrhh_cargos_clean",
+        "cargos",
         "limpiar_cargos.sql",
     )
 
 
 def create_centros_costo_clean_table():
     _create_clean_table(
-        "stg_rrhh_centros_costo_clean",
+        "centros_costo",
         "limpiar_centros_costo.sql",
     )
