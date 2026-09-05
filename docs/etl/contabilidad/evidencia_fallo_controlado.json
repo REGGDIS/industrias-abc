@@ -1,0 +1,677 @@
+{
+  "run_id": "499f134b-9e9a-4193-94b2-904433cc1f07",
+  "started_at": "2026-09-05T23:09:11.997311+00:00",
+  "status": "ERROR",
+  "stage": "validate",
+  "error": "Fallaron controles de calidad; consultar controles y registros.",
+  "procesados": 48,
+  "validos": 38,
+  "review": 0,
+  "errores": 10,
+  "controles_error": 1,
+  "extraidos": {
+    "areas": 7,
+    "centros_costo": 7,
+    "cuentas_contables": 24,
+    "movimientos_contables": 10
+  },
+  "normalizacion": [],
+  "registros": [
+    {
+      "entidad": "areas",
+      "id": 1,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "areas",
+      "id": 2,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "areas",
+      "id": 3,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "areas",
+      "id": 4,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "areas",
+      "id": 5,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "areas",
+      "id": 6,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "areas",
+      "id": 7,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "centros_costo",
+      "id": 1,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "centros_costo",
+      "id": 2,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "centros_costo",
+      "id": 3,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "centros_costo",
+      "id": 4,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "centros_costo",
+      "id": 5,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "centros_costo",
+      "id": 6,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "centros_costo",
+      "id": 7,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 1,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 2,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 3,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 4,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 5,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 10,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 11,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 20,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 40,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 50,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 51,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 52,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 53,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 101,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 102,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 201,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 202,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 401,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 501,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 502,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 511,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 512,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 521,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "cuentas_contables",
+      "id": 531,
+      "estado": "VALID",
+      "reglas": []
+    },
+    {
+      "entidad": "movimientos_contables",
+      "id": 1,
+      "estado": "ERROR",
+      "reglas": [
+        "reglas_contables"
+      ]
+    },
+    {
+      "entidad": "movimientos_contables",
+      "id": 2,
+      "estado": "ERROR",
+      "reglas": [
+        "reglas_contables"
+      ]
+    },
+    {
+      "entidad": "movimientos_contables",
+      "id": 3,
+      "estado": "ERROR",
+      "reglas": [
+        "reglas_contables"
+      ]
+    },
+    {
+      "entidad": "movimientos_contables",
+      "id": 4,
+      "estado": "ERROR",
+      "reglas": [
+        "reglas_contables"
+      ]
+    },
+    {
+      "entidad": "movimientos_contables",
+      "id": 5,
+      "estado": "ERROR",
+      "reglas": [
+        "reglas_contables"
+      ]
+    },
+    {
+      "entidad": "movimientos_contables",
+      "id": 6,
+      "estado": "ERROR",
+      "reglas": [
+        "reglas_contables"
+      ]
+    },
+    {
+      "entidad": "movimientos_contables",
+      "id": 7,
+      "estado": "ERROR",
+      "reglas": [
+        "reglas_contables"
+      ]
+    },
+    {
+      "entidad": "movimientos_contables",
+      "id": 8,
+      "estado": "ERROR",
+      "reglas": [
+        "reglas_contables"
+      ]
+    },
+    {
+      "entidad": "movimientos_contables",
+      "id": 9,
+      "estado": "ERROR",
+      "reglas": [
+        "reglas_contables"
+      ]
+    },
+    {
+      "entidad": "movimientos_contables",
+      "id": 10,
+      "estado": "ERROR",
+      "reglas": [
+        "reglas_contables"
+      ]
+    }
+  ],
+  "controles": [
+    {
+      "name": "conteos",
+      "mode": "counts",
+      "status": "OK",
+      "rows": [
+        {
+          "entidad": "areas",
+          "cant_source": 7,
+          "cant_staging": 7,
+          "diferencia": 0
+        },
+        {
+          "entidad": "centros_costo",
+          "cant_source": 7,
+          "cant_staging": 7,
+          "diferencia": 0
+        },
+        {
+          "entidad": "cuentas_contables",
+          "cant_source": 24,
+          "cant_staging": 24,
+          "diferencia": 0
+        },
+        {
+          "entidad": "movimientos_contables",
+          "cant_source": 10,
+          "cant_staging": 10,
+          "diferencia": 0
+        }
+      ]
+    },
+    {
+      "name": "sumas",
+      "mode": "sums",
+      "status": "OK",
+      "rows": [
+        {
+          "source_total_debe": "26950000.00",
+          "staging_total_debe": "26950000.00",
+          "diff_debe": "0.00",
+          "source_total_haber": "26950000.00",
+          "staging_total_haber": "26950000.00",
+          "diff_haber": "0.00"
+        }
+      ]
+    },
+    {
+      "name": "cuadratura",
+      "mode": "balance",
+      "status": "OK",
+      "rows": [
+        {
+          "total_debe_staging": "26950000.00",
+          "total_haber_staging": "26950000.00",
+          "cuadratura_staging": "0.00",
+          "estado_cuadratura": "OK: BALANCE CUADRADO"
+        }
+      ]
+    },
+    {
+      "name": "codigo_area_duplicado",
+      "entity": "areas",
+      "key": "codigo_area",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "codigo_centro_duplicado",
+      "entity": "centros_costo",
+      "key": "codigo",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "codigo_cuenta_duplicado",
+      "entity": "cuentas_contables",
+      "key": "codigo_cuenta",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "cuenta_huerfana",
+      "entity": "movimientos_contables",
+      "key": "movimiento_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "centro_huerfano",
+      "entity": "movimientos_contables",
+      "key": "movimiento_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "area_multiples_centros",
+      "entity": "centros_costo",
+      "key": "area_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "padre_inexistente",
+      "entity": "cuentas_contables",
+      "key": "cuenta_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "reglas_contables",
+      "entity": "movimientos_contables",
+      "key": "movimiento_id",
+      "status": "ERROR",
+      "rows": [
+        {
+          "movimiento_id": 1,
+          "fecha": "2025-01-30",
+          "cuenta_id": 511,
+          "centro_costo_id": 1,
+          "documento_tipo": "LIQUIDACION",
+          "documento_numero": "NOM-2025-01",
+          "descripcion": "Pago de remuneraciones Administración",
+          "debe": "3500000.00",
+          "haber": "0.00",
+          "moneda": "CLP",
+          "tipo_cambio": "0.0000"
+        },
+        {
+          "movimiento_id": 2,
+          "fecha": "2025-01-30",
+          "cuenta_id": 101,
+          "centro_costo_id": 1,
+          "documento_tipo": "TRANSFERENCIA",
+          "documento_numero": "TR-88910",
+          "descripcion": "Transferencia bancaria sueldos Administración",
+          "debe": "0.00",
+          "haber": "3500000.00",
+          "moneda": "CLP",
+          "tipo_cambio": "0.0000"
+        },
+        {
+          "movimiento_id": 3,
+          "fecha": "2025-02-15",
+          "cuenta_id": 501,
+          "centro_costo_id": 5,
+          "documento_tipo": "FACTURA",
+          "documento_numero": "FAC-76001",
+          "descripcion": "Compra de materia prima acero laminado",
+          "debe": "12500000.00",
+          "haber": "0.00",
+          "moneda": "CLP",
+          "tipo_cambio": "0.0000"
+        },
+        {
+          "movimiento_id": 4,
+          "fecha": "2025-02-15",
+          "cuenta_id": 201,
+          "centro_costo_id": 4,
+          "documento_tipo": "FACTURA",
+          "documento_numero": "FAC-76001",
+          "descripcion": "Reconocimiento cuenta por pagar proveedor",
+          "debe": "0.00",
+          "haber": "12500000.00",
+          "moneda": "CLP",
+          "tipo_cambio": "0.0000"
+        },
+        {
+          "movimiento_id": 5,
+          "fecha": "2025-03-10",
+          "cuenta_id": 521,
+          "centro_costo_id": 6,
+          "documento_tipo": "FACTURA",
+          "documento_numero": "FAC-33421",
+          "descripcion": "Insumos mantención preventiva prensas",
+          "debe": "1800000.00",
+          "haber": "0.00",
+          "moneda": "CLP",
+          "tipo_cambio": "0.0000"
+        },
+        {
+          "movimiento_id": 6,
+          "fecha": "2025-03-10",
+          "cuenta_id": 101,
+          "centro_costo_id": 3,
+          "documento_tipo": "TRANSFERENCIA",
+          "documento_numero": "TR-90112",
+          "descripcion": "Pago mantención mediante transferencia Banco",
+          "debe": "0.00",
+          "haber": "1800000.00",
+          "moneda": "CLP",
+          "tipo_cambio": "0.0000"
+        },
+        {
+          "movimiento_id": 7,
+          "fecha": "2025-04-05",
+          "cuenta_id": 531,
+          "centro_costo_id": 7,
+          "documento_tipo": "FACTURA",
+          "documento_numero": "FAC-55102",
+          "descripcion": "Servicio de flete y arriendo equipo bodega",
+          "debe": "950000.00",
+          "haber": "0.00",
+          "moneda": "CLP",
+          "tipo_cambio": "0.0000"
+        },
+        {
+          "movimiento_id": 8,
+          "fecha": "2025-04-05",
+          "cuenta_id": 101,
+          "centro_costo_id": 7,
+          "documento_tipo": "TRANSFERENCIA",
+          "documento_numero": "TR-91450",
+          "descripcion": "Traspaso bancario arriendo grúa",
+          "debe": "0.00",
+          "haber": "950000.00",
+          "moneda": "CLP",
+          "tipo_cambio": "0.0000"
+        },
+        {
+          "movimiento_id": 9,
+          "fecha": "2025-05-20",
+          "cuenta_id": 102,
+          "centro_costo_id": 3,
+          "documento_tipo": "FACTURA_VENTA",
+          "documento_numero": "FV-00101",
+          "descripcion": "Emisión factura venta soportes industriales",
+          "debe": "8200000.00",
+          "haber": "0.00",
+          "moneda": "CLP",
+          "tipo_cambio": "0.0000"
+        },
+        {
+          "movimiento_id": 10,
+          "fecha": "2025-05-20",
+          "cuenta_id": 401,
+          "centro_costo_id": 5,
+          "documento_tipo": "FACTURA_VENTA",
+          "documento_numero": "FV-00101",
+          "descripcion": "Reconocimiento ingreso por venta estructuras",
+          "debe": "0.00",
+          "haber": "8200000.00",
+          "moneda": "CLP",
+          "tipo_cambio": "0.0000"
+        }
+      ]
+    },
+    {
+      "name": "estado_centro",
+      "entity": "centros_costo",
+      "key": "centro_costo_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "estado_cuenta",
+      "entity": "cuentas_contables",
+      "key": "cuenta_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "moneda",
+      "entity": "movimientos_contables",
+      "key": "moneda",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "area_inexistente",
+      "entity": "centros_costo",
+      "key": "centro_costo_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "preservacion_moneda",
+      "entity": "movimientos_contables",
+      "key": "movimiento_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "preservacion_documento",
+      "entity": "movimientos_contables",
+      "key": "movimiento_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "obligatorios_areas",
+      "entity": "areas",
+      "key": "area_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "preservacion_areas",
+      "entity": "areas",
+      "key": "area_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "obligatorios_centros_costo",
+      "entity": "centros_costo",
+      "key": "centro_costo_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "preservacion_centros_costo",
+      "entity": "centros_costo",
+      "key": "centro_costo_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "obligatorios_cuentas_contables",
+      "entity": "cuentas_contables",
+      "key": "cuenta_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "preservacion_cuentas_contables",
+      "entity": "cuentas_contables",
+      "key": "cuenta_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "obligatorios_movimientos_contables",
+      "entity": "movimientos_contables",
+      "key": "movimiento_id",
+      "status": "OK",
+      "rows": []
+    },
+    {
+      "name": "preservacion_movimientos_contables",
+      "entity": "movimientos_contables",
+      "key": "movimiento_id",
+      "status": "OK",
+      "rows": []
+    }
+  ],
+  "finished_at": "2026-09-05T23:09:12.063964+00:00",
+  "duration_seconds": 0.0779999999795109
+}

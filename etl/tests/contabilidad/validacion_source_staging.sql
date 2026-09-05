@@ -1,56 +1,42 @@
 \set ON_ERROR_STOP on
 
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+
 -- =============================================================================
--- PREPARACIÓN REPRODUCIBLE SOURCE -> RAW -> STAGING/CLEAN
---
--- Los objetos RAW y CLEAN se crean como tablas TEMP dentro de esta sesión.
--- No se modifica ninguna tabla operacional ni se crean objetos permanentes.
--- Las transformaciones reproducen las definidas en ETL Contabilidad 0.1.
+-- FIXTURE TEMPORAL SOURCE -> RAW
+-- No modifica tablas operacionales ni crea objetos permanentes.
 -- =============================================================================
 
-DROP TABLE IF EXISTS stg_contabilidad_areas_clean;
-DROP TABLE IF EXISTS stg_contabilidad_centros_costo_clean;
-DROP TABLE IF EXISTS stg_contabilidad_cuentas_contables_clean;
-DROP TABLE IF EXISTS stg_contabilidad_movimientos_contables_clean;
-
-DROP TABLE IF EXISTS stg_contabilidad_areas_raw;
-DROP TABLE IF EXISTS stg_contabilidad_centros_costo_raw;
-DROP TABLE IF EXISTS stg_contabilidad_cuentas_contables_raw;
-DROP TABLE IF EXISTS stg_contabilidad_movimientos_contables_raw;
-
--- -----------------------------------------------------------------------------
--- RAW TEMPORAL
--- -----------------------------------------------------------------------------
-
-CREATE TEMP TABLE stg_contabilidad_areas_raw AS
+CREATE TEMP TABLE stg_contabilidad_areas_raw ON COMMIT DROP AS
 SELECT *
 FROM areas;
 
-CREATE TEMP TABLE stg_contabilidad_centros_costo_raw AS
+CREATE TEMP TABLE stg_contabilidad_centros_costo_raw ON COMMIT DROP AS
 SELECT *
 FROM centros_costo;
 
-CREATE TEMP TABLE stg_contabilidad_cuentas_contables_raw AS
+CREATE TEMP TABLE stg_contabilidad_cuentas_contables_raw ON COMMIT DROP AS
 SELECT *
 FROM cuentas_contables;
 
-CREATE TEMP TABLE stg_contabilidad_movimientos_contables_raw AS
+CREATE TEMP TABLE stg_contabilidad_movimientos_contables_raw ON COMMIT DROP AS
 SELECT *
 FROM movimientos_contables;
 
--- -----------------------------------------------------------------------------
--- STAGING / CLEAN TEMPORAL
--- Misma lógica de los scripts aprobados en etl/sql/staging/contabilidad/
--- -----------------------------------------------------------------------------
 
-CREATE TEMP TABLE stg_contabilidad_areas_clean AS
+-- =============================================================================
+-- STAGING / CLEAN
+-- Reproduce las transformaciones aprobadas del ETL Contabilidad 0.1.
+-- =============================================================================
+
+CREATE TEMP TABLE stg_contabilidad_areas_clean ON COMMIT DROP AS
 SELECT
     area_id,
     UPPER(TRIM(codigo_area)) AS codigo_area,
     TRIM(nombre_area) AS nombre_area
 FROM stg_contabilidad_areas_raw;
 
-CREATE TEMP TABLE stg_contabilidad_centros_costo_clean AS
+CREATE TEMP TABLE stg_contabilidad_centros_costo_clean ON COMMIT DROP AS
 SELECT
     centro_costo_id,
     UPPER(TRIM(codigo)) AS codigo,
@@ -60,7 +46,7 @@ SELECT
     UPPER(TRIM(estado)) AS estado
 FROM stg_contabilidad_centros_costo_raw;
 
-CREATE TEMP TABLE stg_contabilidad_cuentas_contables_clean AS
+CREATE TEMP TABLE stg_contabilidad_cuentas_contables_clean ON COMMIT DROP AS
 SELECT
     cuenta_id,
     UPPER(TRIM(codigo_cuenta)) AS codigo_cuenta,
@@ -72,7 +58,7 @@ SELECT
     UPPER(TRIM(estado)) AS estado
 FROM stg_contabilidad_cuentas_contables_raw;
 
-CREATE TEMP TABLE stg_contabilidad_movimientos_contables_clean AS
+CREATE TEMP TABLE stg_contabilidad_movimientos_contables_clean ON COMMIT DROP AS
 SELECT
     movimiento_id,
     CAST(fecha AS DATE) AS fecha,
@@ -87,232 +73,12 @@ SELECT
     tipo_cambio
 FROM stg_contabilidad_movimientos_contables_raw;
 
-\echo '=== STAGING TEMPORAL CONTABILIDAD PREPARADO ==='
 
 -- =============================================================================
--- INFORME DE PRUEBAS TÉCNICAS: VALIDACIÓN SOURCE-TO-STAGING
--- Dominio: Contabilidad
--- Responsable: Felipe Badilla
--- Rama: test/validacion-etl-contabilidad-01
--- Motor: PostgreSQL
+-- CONTROLES DE CALIDAD Y RECONCILIACIÓN
+-- Una sola fuente de verdad compartida con el runner Python.
 -- =============================================================================
 
+\ir ../../validate/contabilidad/controles.sql
 
-
-
--- =============================================================================
--- BLOQUE 1: RECONCILIACIÓN DE CONTEOS (SOURCE vs STAGING)
--- Objetivo: Comprobar que ningún registro se haya perdido en la extracción y limpieza.
--- Criterio de Éxito: cant_source = cant_staging y diferencia = 0.
--- =============================================================================
-
--- 1.1 Conteos consolidados de las 4 entidades
-SELECT 
-    'areas' AS entidad,
-    (SELECT COUNT(*) FROM areas) AS cant_source,
-    (SELECT COUNT(*) FROM stg_contabilidad_areas_clean) AS cant_staging,
-    (SELECT COUNT(*) FROM areas) - (SELECT COUNT(*) FROM stg_contabilidad_areas_clean) AS diferencia
-UNION ALL
-SELECT 
-    'centros_costo' AS entidad,
-    (SELECT COUNT(*) FROM centros_costo) AS cant_source,
-    (SELECT COUNT(*) FROM stg_contabilidad_centros_costo_clean) AS cant_staging,
-    (SELECT COUNT(*) FROM centros_costo) - (SELECT COUNT(*) FROM stg_contabilidad_centros_costo_clean) AS diferencia
-UNION ALL
-SELECT 
-    'cuentas_contables' AS entidad,
-    (SELECT COUNT(*) FROM cuentas_contables) AS cant_source,
-    (SELECT COUNT(*) FROM stg_contabilidad_cuentas_contables_clean) AS cant_staging,
-    (SELECT COUNT(*) FROM cuentas_contables) - (SELECT COUNT(*) FROM stg_contabilidad_cuentas_contables_clean) AS diferencia
-UNION ALL
-SELECT 
-    'movimientos_contables' AS entidad,
-    (SELECT COUNT(*) FROM movimientos_contables) AS cant_source,
-    (SELECT COUNT(*) FROM stg_contabilidad_movimientos_contables_clean) AS cant_staging,
-    (SELECT COUNT(*) FROM movimientos_contables) - (SELECT COUNT(*) FROM stg_contabilidad_movimientos_contables_clean) AS diferencia;
-
-/*
-Diagnóstico si diferencia <> 0:
-- Si faltan registros en staging, revisa si el script de staging tiene un filtro WHERE
-  que esté descartando registros indebidamente.
-*/
-
-
--- =============================================================================
--- BLOQUE 2: RECONCILIACIÓN FINANCIERA Y CUADRATURA CONTABLE
--- Objetivo: Garantizar integridad matemática de Debe y Haber entre fuente y staging.
--- Criterio de Éxito:
---   - diff_debe = 0.00
---   - diff_haber = 0.00
---   - cuadratura_staging = 0.00 (Debe es exactamente igual a Haber)
--- =============================================================================
-
--- 2.1 Comparación montos globales Source vs Staging
-SELECT 
-    (SELECT SUM(debe) FROM movimientos_contables) AS source_total_debe,
-    (SELECT SUM(debe) FROM stg_contabilidad_movimientos_contables_clean) AS staging_total_debe,
-    (SELECT SUM(debe) FROM movimientos_contables) - (SELECT SUM(debe) FROM stg_contabilidad_movimientos_contables_clean) AS diff_debe,
-    (SELECT SUM(haber) FROM movimientos_contables) AS source_total_haber,
-    (SELECT SUM(haber) FROM stg_contabilidad_movimientos_contables_clean) AS staging_total_haber,
-    (SELECT SUM(haber) FROM movimientos_contables) - (SELECT SUM(haber) FROM stg_contabilidad_movimientos_contables_clean) AS diff_haber;
-
--- 2.2 Verificación de la partida doble en Staging
-SELECT 
-    SUM(debe) AS total_debe_staging,
-    SUM(haber) AS total_haber_staging,
-    SUM(debe) - SUM(haber) AS cuadratura_staging,
-    CASE 
-        WHEN SUM(debe) - SUM(haber) = 0 THEN 'OK: BALANCE CUADRADO'
-        ELSE 'ERROR: DESCUADRE CONTABLE'
-    END AS estado_cuadratura
-FROM stg_contabilidad_movimientos_contables_clean;
-
-/*
-Diagnóstico si hay descuadre:
-- Verificar si hubo truncamiento de decimales por un CAST erróneo (usar NUMERIC(15,2)).
-*/
-
-
--- =============================================================================
--- BLOQUE 3: UNICIDAD DE CLAVES DE NEGOCIO EN STAGING
--- Objetivo: Asegurar que no se generen duplicados tras las transformaciones (ej. UPPER/TRIM).
--- Criterio de Éxito: 0 filas devueltas en cada consulta.
--- =============================================================================
-
--- 3.1 Duplicados en áreas por código
-SELECT codigo_area, COUNT(*) AS repeticiones
-FROM stg_contabilidad_areas_clean
-GROUP BY codigo_area
-HAVING COUNT(*) > 1;
-
--- 3.2 Duplicados en centros de costo por código
-SELECT codigo, COUNT(*) AS repeticiones
-FROM stg_contabilidad_centros_costo_clean
-GROUP BY codigo
-HAVING COUNT(*) > 1;
-
--- 3.3 Duplicados en cuentas contables por código
-SELECT codigo_cuenta, COUNT(*) AS repeticiones
-FROM stg_contabilidad_cuentas_contables_clean
-GROUP BY codigo_cuenta
-HAVING COUNT(*) > 1;
-
-/*
-Diagnóstico si devuelve filas:
-- Existen registros que diferían únicamente en espacios o mayúsculas en la fuente,
-  y al aplicar TRIM() o UPPER() colisionaron como duplicados.
-*/
-
-
--- =============================================================================
--- BLOQUE 4: INTEGRIDAD REFERENCIAL Y RELACIONES
--- Objetivo: Comprobar que no existan registros huérfanos entre entidades.
--- Criterio de Éxito: 0 filas devueltas en cada consulta.
--- =============================================================================
-
--- 4.1 Movimientos huérfanos de Cuenta Contable
-SELECT m.movimiento_id, m.cuenta_id
-FROM stg_contabilidad_movimientos_contables_clean m
-LEFT JOIN stg_contabilidad_cuentas_contables_clean c ON m.cuenta_id = c.cuenta_id
-WHERE c.cuenta_id IS NULL;
-
--- 4.2 Movimientos huérfanos de Centro de Costo
-SELECT m.movimiento_id, m.centro_costo_id
-FROM stg_contabilidad_movimientos_contables_clean m
-LEFT JOIN stg_contabilidad_centros_costo_clean cc ON m.centro_costo_id = cc.centro_costo_id
-WHERE cc.centro_costo_id IS NULL;
-
--- 4.3 Relación 1:1 entre Área y Centro de Costo (Ningún área debe tener más de 1 centro)
-SELECT area_id, COUNT(*) AS total_centros_asociados
-FROM stg_contabilidad_centros_costo_clean
-GROUP BY area_id
-HAVING COUNT(*) > 1;
-
--- 4.4 Jerarquía de cuentas (Cuentas hijas apuntando a un padre inexistente)
-SELECT hijo.cuenta_id, hijo.codigo_cuenta, hijo.cuenta_padre_id
-FROM stg_contabilidad_cuentas_contables_clean hijo
-LEFT JOIN stg_contabilidad_cuentas_contables_clean padre ON hijo.cuenta_padre_id = padre.cuenta_id
-WHERE hijo.cuenta_padre_id IS NOT NULL 
-  AND padre.cuenta_id IS NULL;
-
-
--- =============================================================================
--- BLOQUE 5: REGLAS DE NEGOCIO Y DOMINIOS
--- Objetivo: Validar la consistencia contable y la normalización de estados y monedas.
--- Criterio de Éxito: 0 filas devueltas en cada consulta.
--- =============================================================================
-
--- 5.1 Reglas contables obligatorias en movimientos:
---   - Montos no pueden ser negativos.
---   - No pueden ser ambos 0 simultáneamente.
---   - No pueden tener valores mayores a 0 en Debe y Haber a la vez.
---   - tipo_cambio debe ser estrictamente positivo.
-SELECT *
-FROM stg_contabilidad_movimientos_contables_clean
-WHERE debe < 0 
-   OR haber < 0 
-   OR (debe = 0 AND haber = 0)
-   OR (debe > 0 AND haber > 0)
-   OR tipo_cambio <= 0;
-
--- 5.2 Dominio de estado en Centros de Costo (Solo se permite 'ACTIVO' o 'INACTIVO')
-SELECT centro_costo_id, codigo, estado
-FROM stg_contabilidad_centros_costo_clean
-WHERE estado NOT IN ('ACTIVO', 'INACTIVO') OR estado IS NULL;
-
--- 5.3 Dominio de estado en Cuentas Contables (Solo se permite 'ACTIVA' o 'INACTIVA')
-SELECT cuenta_id, codigo_cuenta, estado
-FROM stg_contabilidad_cuentas_contables_clean
-WHERE estado NOT IN ('ACTIVA', 'INACTIVA') OR estado IS NULL;
-
--- 5.4 Normalización de Moneda (No vacíos ni con espacios residuales)
-SELECT DISTINCT moneda
-FROM stg_contabilidad_movimientos_contables_clean
-WHERE moneda IS NULL 
-   OR LENGTH(moneda) = 0 
-   OR moneda <> TRIM(moneda);
-
--- =============================================================================
--- BLOQUE 6: CONTROLES ADICIONALES DE TRAZABILIDAD
--- =============================================================================
-
--- 6.1 Centros de costo con area_id inexistente
--- Criterio de éxito: 0 filas.
-SELECT
-    cc.centro_costo_id,
-    cc.codigo,
-    cc.area_id
-FROM stg_contabilidad_centros_costo_clean cc
-LEFT JOIN stg_contabilidad_areas_clean a
-    ON cc.area_id = a.area_id
-WHERE a.area_id IS NULL;
-
-
--- 6.2 Preservación semántica de moneda Source -> Staging
--- Compara el valor normalizado esperado desde Source con el valor CLEAN.
--- Criterio de éxito: 0 filas.
-SELECT
-    s.movimiento_id,
-    s.moneda AS moneda_source,
-    c.moneda AS moneda_staging
-FROM movimientos_contables s
-JOIN stg_contabilidad_movimientos_contables_clean c
-    ON c.movimiento_id = s.movimiento_id
-WHERE UPPER(TRIM(s.moneda)) IS DISTINCT FROM c.moneda;
-
-
--- 6.3 Preservación y normalización de documento_tipo
--- Criterio de éxito: 0 filas.
-SELECT
-    s.movimiento_id,
-    s.documento_tipo AS documento_tipo_source,
-    c.documento_tipo AS documento_tipo_staging
-FROM movimientos_contables s
-JOIN stg_contabilidad_movimientos_contables_clean c
-    ON c.movimiento_id = s.movimiento_id
-WHERE UPPER(TRIM(s.documento_tipo))
-      IS DISTINCT FROM c.documento_tipo
-   OR c.documento_tipo IS NULL
-   OR c.documento_tipo = '';
-
-
+ROLLBACK;
