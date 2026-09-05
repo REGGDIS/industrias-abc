@@ -1,63 +1,80 @@
-import mysql.connector
+from pathlib import Path
 
+import pymysql
+
+from etl.config.settings import get_asistencia_db_config
 from etl.validate.asistencia.validator import (
-    validate_asistencias,
     resumen_validacion,
+    validate_asistencias,
 )
 
 
-DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "",
-    "database": "sistemadeasistenciaindustriasabc",
-}
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+STAGING_DIR = PROJECT_ROOT / "etl" / "sql" / "staging" / "asistencia"
+
+
+def _leer_sql(nombre_archivo: str) -> str:
+    ruta = STAGING_DIR / nombre_archivo
+    return ruta.read_text(encoding="utf-8").strip().rstrip(";")
 
 
 def obtener_datos():
+    config = get_asistencia_db_config()
 
-    conexion = mysql.connector.connect(**DB_CONFIG)
-    cursor = conexion.cursor(dictionary=True)
+    conexion = pymysql.connect(
+        host=config.host,
+        port=config.port,
+        user=config.user,
+        password=config.password,
+        database=config.database,
+        cursorclass=pymysql.cursors.DictCursor,
+        autocommit=True,
+    )
+
+    cursor = conexion.cursor()
 
     try:
-        cursor.execute("""
-            SELECT
-                trabajador_id,
-                rut,
-                nombre,
-                apellido,
-                fecha_ingreso
+        # -------------------------------------------------------------
+        # RAW temporal
+        # -------------------------------------------------------------
+        cursor.execute(
+            """
+            CREATE TEMPORARY TABLE stg_asistencia_trabajador_raw
+            AS
+            SELECT *
             FROM trabajador
-        """)
+            """
+        )
+
+        cursor.execute(
+            """
+            CREATE TEMPORARY TABLE stg_asistencia_turnos_raw
+            AS
+            SELECT *
+            FROM turnos
+            """
+        )
+
+        cursor.execute(
+            """
+            CREATE TEMPORARY TABLE stg_asistencia_asistencia_raw
+            AS
+            SELECT *
+            FROM asistencia
+            """
+        )
+
+        # -------------------------------------------------------------
+        # STAGING / CLEAN
+        # Se reutilizan los SQL ya aprobados en Asistencia 0.1.
+        # -------------------------------------------------------------
+        cursor.execute(_leer_sql("trabajador.sql"))
         trabajadores = cursor.fetchall()
 
-        cursor.execute("""
-            SELECT
-                turno_id,
-                nombre_turno,
-                hora_inicio,
-                hora_fin,
-                horas_jornada
-            FROM turnos
-        """)
+        cursor.execute(_leer_sql("turnos.sql"))
         turnos = cursor.fetchall()
 
-        cursor.execute("""
-            SELECT
-                asistencia_id,
-                trabajador_id,
-                turno_id,
-                fecha,
-                hora_entrada,
-                hora_salida,
-                horas_trabajadas,
-                horas_normales,
-                horas_extras,
-                atraso_minutos,
-                ausentismo,
-                estado
-            FROM asistencia
-        """)
+        cursor.execute(_leer_sql("asistencia.sql"))
         asistencias = cursor.fetchall()
 
         return trabajadores, turnos, asistencias
@@ -68,7 +85,6 @@ def obtener_datos():
 
 
 def ejecutar_validacion():
-
     trabajadores, turnos, asistencias = obtener_datos()
 
     trabajadores_ids = {
