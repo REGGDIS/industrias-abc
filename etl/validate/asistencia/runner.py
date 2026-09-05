@@ -1,4 +1,12 @@
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import date, datetime, time, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
+from time import monotonic
+from uuid import uuid4
 
 import pymysql
 
@@ -18,10 +26,10 @@ def _leer_sql(nombre_archivo: str) -> str:
     return ruta.read_text(encoding="utf-8").strip().rstrip(";")
 
 
-def obtener_datos():
+def _crear_conexion():
     config = get_asistencia_db_config()
 
-    conexion = pymysql.connect(
+    return pymysql.connect(
         host=config.host,
         port=config.port,
         user=config.user,
@@ -31,6 +39,10 @@ def obtener_datos():
         autocommit=True,
     )
 
+
+def obtener_datos(connection_factory=None):
+    factory = connection_factory or _crear_conexion
+    conexion = factory()
     cursor = conexion.cursor()
 
     try:
@@ -84,9 +96,7 @@ def obtener_datos():
         conexion.close()
 
 
-def ejecutar_validacion():
-    trabajadores, turnos, asistencias = obtener_datos()
-
+def validar_datos(trabajadores, turnos, asistencias):
     trabajadores_ids = {
         trabajador["trabajador_id"]
         for trabajador in trabajadores
@@ -117,6 +127,127 @@ def ejecutar_validacion():
 
     resumen = resumen_validacion(resultados)
 
+    return resumen, resultados
+
+
+def _json_value(value):
+    if isinstance(value, Decimal):
+        return str(value)
+
+    if isinstance(value, (date, datetime, time)):
+        return value.isoformat()
+
+    if isinstance(value, timedelta):
+        return value.total_seconds()
+
+    raise TypeError(
+        f"Tipo no serializable: {type(value).__name__}"
+    )
+
+
+def run(output: str | Path, connection_factory=None) -> dict:
+    inicio_monotonic = monotonic()
+
+    report = {
+        "run_id": str(uuid4()),
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": None,
+        "duration_seconds": None,
+        "status": "ERROR",
+        "stage": "configuration",
+        "error": None,
+        "procesados": 0,
+        "validos": 0,
+        "errores": 0,
+        "warnings": 0,
+        "extraidos": {
+            "trabajadores": 0,
+            "turnos": 0,
+            "asistencias": 0,
+        },
+        "detalle": [],
+    }
+
+    try:
+        report["stage"] = "extract"
+
+        trabajadores, turnos, asistencias = obtener_datos(
+            connection_factory=connection_factory
+        )
+
+        report["extraidos"] = {
+            "trabajadores": len(trabajadores),
+            "turnos": len(turnos),
+            "asistencias": len(asistencias),
+        }
+
+        report["stage"] = "validate"
+
+        resumen, resultados = validar_datos(
+            trabajadores,
+            turnos,
+            asistencias,
+        )
+
+        report.update(
+            {
+                "procesados": resumen["procesados"],
+                "validos": resumen["validos"],
+                "errores": resumen["errores"],
+                "warnings": resumen["warnings"],
+                "detalle": resumen["detalle"],
+                "resultados": resultados,
+            }
+        )
+
+        if report["errores"] > 0:
+            raise ValueError(
+                "Se detectaron registros de asistencia con errores de calidad."
+            )
+
+        report["status"] = "OK"
+        report["stage"] = None
+
+    except Exception as exc:
+        # Los fallos técnicos no persisten mensajes de conexión,
+        # porque podrían contener información sensible.
+        if isinstance(exc, ValueError):
+            report["error"] = str(exc)
+        else:
+            report["error"] = (
+                f"{type(exc).__name__}: "
+                f"fallo en {report['stage']}"
+            )
+
+    report["finished_at"] = datetime.now(timezone.utc).isoformat()
+    report["duration_seconds"] = monotonic() - inicio_monotonic
+
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    output.write_text(
+        json.dumps(
+            report,
+            ensure_ascii=False,
+            indent=2,
+            default=_json_value,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    return report
+
+
+def ejecutar_validacion():
+    trabajadores, turnos, asistencias = obtener_datos()
+
+    resumen, _ = validar_datos(
+        trabajadores,
+        turnos,
+        asistencias,
+    )
+
     print("========================================")
     print("VALIDACIÓN DE ASISTENCIA")
     print("========================================")
@@ -141,4 +272,25 @@ def ejecutar_validacion():
 
 
 if __name__ == "__main__":
-    ejecutar_validacion()
+    parser = argparse.ArgumentParser(
+        description="Ejecuta y audita la validación ETL de Asistencia."
+    )
+
+    parser.add_argument(
+        "--output",
+        default=f"logs/asistencia/{uuid4()}.json",
+    )
+
+    args = parser.parse_args()
+
+    resultado = run(args.output)
+
+    print(
+        f"run_id={resultado['run_id']} "
+        f"status={resultado['status']} "
+        f"output={args.output}"
+    )
+
+    raise SystemExit(
+        0 if resultado["status"] == "OK" else 1
+    )
