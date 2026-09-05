@@ -1,0 +1,591 @@
+{
+  "run_id": "a965a979-0f6f-4104-a6cb-779813d8fbb9",
+  "started_at": "2026-09-05T23:27:37.389307+00:00",
+  "finished_at": "2026-09-05T23:27:37.445095+00:00",
+  "duration_seconds": 0.06299999996554106,
+  "status": "OK",
+  "stage": null,
+  "error": null,
+  "procesados": 30,
+  "validos": 30,
+  "errores": 0,
+  "warnings": 0,
+  "extraidos": {
+    "trabajadores": 10,
+    "turnos": 3,
+    "asistencias": 30
+  },
+  "detalle": [],
+  "resultados": [
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 1,
+        "trabajador_id": 1,
+        "turno_id": 1,
+        "fecha": "2026-07-27",
+        "hora_entrada": 28800.0,
+        "hora_salida": 61200.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 2,
+        "trabajador_id": 1,
+        "turno_id": 1,
+        "fecha": "2026-07-28",
+        "hora_entrada": 29400.0,
+        "hora_salida": 61200.0,
+        "horas_trabajadas": "7.83",
+        "horas_normales": "7.83",
+        "horas_extras": "0.00",
+        "atraso_minutos": 10,
+        "ausentismo": 0,
+        "estado": "ATRASO"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 3,
+        "trabajador_id": 1,
+        "turno_id": 1,
+        "fecha": "2026-07-29",
+        "hora_entrada": 28800.0,
+        "hora_salida": 64800.0,
+        "horas_trabajadas": "9.00",
+        "horas_normales": "8.00",
+        "horas_extras": "1.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 4,
+        "trabajador_id": 2,
+        "turno_id": 2,
+        "fecha": "2026-07-27",
+        "hora_entrada": 50400.0,
+        "hora_salida": 79200.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 5,
+        "trabajador_id": 2,
+        "turno_id": 2,
+        "fecha": "2026-07-28",
+        "hora_entrada": 50700.0,
+        "hora_salida": 79200.0,
+        "horas_trabajadas": "7.92",
+        "horas_normales": "7.92",
+        "horas_extras": "0.00",
+        "atraso_minutos": 5,
+        "ausentismo": 0,
+        "estado": "ATRASO"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 6,
+        "trabajador_id": 2,
+        "turno_id": 2,
+        "fecha": "2026-07-29",
+        "hora_entrada": null,
+        "hora_salida": null,
+        "horas_trabajadas": "0.00",
+        "horas_normales": "0.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 1,
+        "estado": "AUSENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 7,
+        "trabajador_id": 3,
+        "turno_id": 3,
+        "fecha": "2026-07-27",
+        "hora_entrada": 32400.0,
+        "hora_salida": 64800.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 8,
+        "trabajador_id": 3,
+        "turno_id": 3,
+        "fecha": "2026-07-28",
+        "hora_entrada": 33300.0,
+        "hora_salida": 64800.0,
+        "horas_trabajadas": "7.75",
+        "horas_normales": "7.75",
+        "horas_extras": "0.00",
+        "atraso_minutos": 15,
+        "ausentismo": 0,
+        "estado": "ATRASO"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 9,
+        "trabajador_id": 3,
+        "turno_id": 3,
+        "fecha": "2026-07-29",
+        "hora_entrada": 32400.0,
+        "hora_salida": 68400.0,
+        "horas_trabajadas": "9.00",
+        "horas_normales": "8.00",
+        "horas_extras": "1.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 10,
+        "trabajador_id": 4,
+        "turno_id": 1,
+        "fecha": "2026-07-27",
+        "hora_entrada": 28800.0,
+        "hora_salida": 61200.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 11,
+        "trabajador_id": 4,
+        "turno_id": 1,
+        "fecha": "2026-07-28",
+        "hora_entrada": 28980.0,
+        "hora_salida": 61200.0,
+        "horas_trabajadas": "7.95",
+        "horas_normales": "7.95",
+        "horas_extras": "0.00",
+        "atraso_minutos": 3,
+        "ausentismo": 0,
+        "estado": "ATRASO"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 12,
+        "trabajador_id": 4,
+        "turno_id": 1,
+        "fecha": "2026-07-29",
+        "hora_entrada": null,
+        "hora_salida": null,
+        "horas_trabajadas": "0.00",
+        "horas_normales": "0.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 1,
+        "estado": "AUSENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 13,
+        "trabajador_id": 5,
+        "turno_id": 2,
+        "fecha": "2026-07-27",
+        "hora_entrada": 50400.0,
+        "hora_salida": 79200.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 14,
+        "trabajador_id": 5,
+        "turno_id": 2,
+        "fecha": "2026-07-28",
+        "hora_entrada": 51600.0,
+        "hora_salida": 79200.0,
+        "horas_trabajadas": "7.67",
+        "horas_normales": "7.67",
+        "horas_extras": "0.00",
+        "atraso_minutos": 20,
+        "ausentismo": 0,
+        "estado": "ATRASO"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 15,
+        "trabajador_id": 5,
+        "turno_id": 2,
+        "fecha": "2026-07-29",
+        "hora_entrada": 50400.0,
+        "hora_salida": 82800.0,
+        "horas_trabajadas": "9.00",
+        "horas_normales": "8.00",
+        "horas_extras": "1.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 16,
+        "trabajador_id": 6,
+        "turno_id": 3,
+        "fecha": "2026-07-27",
+        "hora_entrada": 32400.0,
+        "hora_salida": 64800.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 17,
+        "trabajador_id": 6,
+        "turno_id": 3,
+        "fecha": "2026-07-28",
+        "hora_entrada": 32880.0,
+        "hora_salida": 64800.0,
+        "horas_trabajadas": "7.87",
+        "horas_normales": "7.87",
+        "horas_extras": "0.00",
+        "atraso_minutos": 8,
+        "ausentismo": 0,
+        "estado": "ATRASO"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 18,
+        "trabajador_id": 6,
+        "turno_id": 3,
+        "fecha": "2026-07-29",
+        "hora_entrada": 32400.0,
+        "hora_salida": 66600.0,
+        "horas_trabajadas": "8.50",
+        "horas_normales": "8.00",
+        "horas_extras": "0.50",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 19,
+        "trabajador_id": 7,
+        "turno_id": 1,
+        "fecha": "2026-07-27",
+        "hora_entrada": 28800.0,
+        "hora_salida": 61200.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 20,
+        "trabajador_id": 7,
+        "turno_id": 1,
+        "fecha": "2026-07-28",
+        "hora_entrada": 28800.0,
+        "hora_salida": 61200.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 21,
+        "trabajador_id": 7,
+        "turno_id": 1,
+        "fecha": "2026-07-29",
+        "hora_entrada": 29520.0,
+        "hora_salida": 61200.0,
+        "horas_trabajadas": "7.80",
+        "horas_normales": "7.80",
+        "horas_extras": "0.00",
+        "atraso_minutos": 12,
+        "ausentismo": 0,
+        "estado": "ATRASO"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 22,
+        "trabajador_id": 8,
+        "turno_id": 2,
+        "fecha": "2026-07-27",
+        "hora_entrada": 50400.0,
+        "hora_salida": 79200.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 23,
+        "trabajador_id": 8,
+        "turno_id": 2,
+        "fecha": "2026-07-28",
+        "hora_entrada": null,
+        "hora_salida": null,
+        "horas_trabajadas": "0.00",
+        "horas_normales": "0.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 1,
+        "estado": "AUSENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 24,
+        "trabajador_id": 8,
+        "turno_id": 2,
+        "fecha": "2026-07-29",
+        "hora_entrada": 50400.0,
+        "hora_salida": 79200.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 25,
+        "trabajador_id": 9,
+        "turno_id": 3,
+        "fecha": "2026-07-27",
+        "hora_entrada": 32400.0,
+        "hora_salida": 64800.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 26,
+        "trabajador_id": 9,
+        "turno_id": 3,
+        "fecha": "2026-07-28",
+        "hora_entrada": 32700.0,
+        "hora_salida": 64800.0,
+        "horas_trabajadas": "7.92",
+        "horas_normales": "7.92",
+        "horas_extras": "0.00",
+        "atraso_minutos": 5,
+        "ausentismo": 0,
+        "estado": "ATRASO"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 27,
+        "trabajador_id": 9,
+        "turno_id": 3,
+        "fecha": "2026-07-29",
+        "hora_entrada": 32400.0,
+        "hora_salida": 64800.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 28,
+        "trabajador_id": 10,
+        "turno_id": 1,
+        "fecha": "2026-07-27",
+        "hora_entrada": 28800.0,
+        "hora_salida": 61200.0,
+        "horas_trabajadas": "8.00",
+        "horas_normales": "8.00",
+        "horas_extras": "0.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 29,
+        "trabajador_id": 10,
+        "turno_id": 1,
+        "fecha": "2026-07-28",
+        "hora_entrada": 30300.0,
+        "hora_salida": 61200.0,
+        "horas_trabajadas": "7.58",
+        "horas_normales": "7.58",
+        "horas_extras": "0.00",
+        "atraso_minutos": 25,
+        "ausentismo": 0,
+        "estado": "ATRASO"
+      }
+    },
+    {
+      "status": "VALID",
+      "errors": [],
+      "warnings": [],
+      "record": {
+        "asistencia_id": 30,
+        "trabajador_id": 10,
+        "turno_id": 1,
+        "fecha": "2026-07-29",
+        "hora_entrada": 28800.0,
+        "hora_salida": 64800.0,
+        "horas_trabajadas": "9.00",
+        "horas_normales": "8.00",
+        "horas_extras": "1.00",
+        "atraso_minutos": 0,
+        "ausentismo": 0,
+        "estado": "PRESENTE"
+      }
+    }
+  ]
+}
