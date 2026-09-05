@@ -134,8 +134,9 @@ por registro-campo), derivado de recorridos de una sola tabla.
 
 ## 10. Limitaciones y notas
 
-- **RAW/CLEAN no materializado** (§2): se valida sobre el fixture RAW / fuente
-  operacional; se documenta.
+- **RAW/CLEAN no persistente** (§2): los fixtures RAW se generan temporalmente
+  mediante `preparar_raw_compras.sql` y se consumen en la misma sesión por
+  `ejecutar_normalizacion_compras.sql`.
 - **NO DEFINIDO EN LA FUENTE OFICIAL:** el encargo no fija nombre/ruta exactos de
   los archivos (solo las carpetas permitidas); se adoptó el patrón SQL de Compras.
 - Los textos descriptivos cubiertos son `razon_social` y `nombre_insumo` como
@@ -143,10 +144,28 @@ por registro-campo), derivado de recorridos de una sola tabla.
 
 ## 11. Cómo ejecutar
 
-```bash
-# Normalización (requiere los fixtures RAW stg_compras_*_raw materializados)
-psql "<conn>" -f etl/sql/staging/compras/normalizar_compras.sql
+### Ejecución completa y reproducible
 
-# Pruebas (no persiste cambios; falla con exit != 0 si algún caso no pasa)
+El flujo recomendado prepara automáticamente los fixtures RAW temporales y
+ejecuta la normalización en una misma sesión PostgreSQL:
+
+```bash
+psql "<conn>" -f etl/sql/staging/compras/ejecutar_normalizacion_compras.sql
+```
+
+`ejecutar_normalizacion_compras.sql` ejecuta en orden:
+
+1. `preparar_raw_compras.sql`
+2. `normalizar_compras.sql`
+
+Los fixtures `stg_compras_*_raw` se crean como tablas temporales y no modifican
+las tablas operacionales.
+
+### Pruebas
+
+```bash
 psql "<conn>" -f etl/tests/compras/test_normalizacion_compras.sql
 ```
+
+Las pruebas se ejecutan dentro de `BEGIN … ROLLBACK` y lanzan `RAISE EXCEPTION`
+si algún caso no cumple.
