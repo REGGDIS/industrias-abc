@@ -97,26 +97,7 @@ FROM stg_contabilidad_movimientos_contables_raw;
 -- Motor: PostgreSQL
 -- =============================================================================
 
-/*
-================================================================================
-GUÍA DE RESOLUCIÓN DE ERRORES FRECUENTES ANTES DE EJECUTAR:
-================================================================================
-Si obtienes el error: "ERROR: no existe la relación «stg_contabilidad_...»" (SQL state: 42P01):
-Causa: Las vistas o tablas de staging aún no han sido creadas en tu sesión de PostgreSQL.
-Solución paso a paso:
-1. Abre los 4 scripts de staging ubicados en el repositorio:
-   - etl/sql/staging/contabilidad/areas.sql
-   - etl/sql/staging/contabilidad/centros_costo.sql
-   - etl/sql/staging/contabilidad/cuentas_contables.sql
-   - etl/sql/staging/contabilidad/movimientos_contables.sql
-2. Ejecútalos creando una vista para cada uno en tu base de datos:
-   CREATE OR REPLACE VIEW stg_contabilidad_areas_clean AS <pegar SELECT de areas.sql>;
-   CREATE OR REPLACE VIEW stg_contabilidad_centros_costo_clean AS <pegar SELECT de centros_costo.sql>;
-   CREATE OR REPLACE VIEW stg_contabilidad_cuentas_contables_clean AS <pegar SELECT de cuentas_contables.sql>;
-   CREATE OR REPLACE VIEW stg_contabilidad_movimientos_contables_clean AS <pegar SELECT de movimientos_contables.sql>;
-3. Vuelve a ejecutar este script de validación.
-================================================================================
-*/
+
 
 
 -- =============================================================================
@@ -333,4 +314,5 @@ WHERE UPPER(TRIM(s.documento_tipo))
       IS DISTINCT FROM c.documento_tipo
    OR c.documento_tipo IS NULL
    OR c.documento_tipo = '';
+
 
