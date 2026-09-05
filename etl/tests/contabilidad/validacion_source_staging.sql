@@ -1,3 +1,94 @@
+\set ON_ERROR_STOP on
+
+-- =============================================================================
+-- PREPARACIÓN REPRODUCIBLE SOURCE -> RAW -> STAGING/CLEAN
+--
+-- Los objetos RAW y CLEAN se crean como tablas TEMP dentro de esta sesión.
+-- No se modifica ninguna tabla operacional ni se crean objetos permanentes.
+-- Las transformaciones reproducen las definidas en ETL Contabilidad 0.1.
+-- =============================================================================
+
+DROP TABLE IF EXISTS stg_contabilidad_areas_clean;
+DROP TABLE IF EXISTS stg_contabilidad_centros_costo_clean;
+DROP TABLE IF EXISTS stg_contabilidad_cuentas_contables_clean;
+DROP TABLE IF EXISTS stg_contabilidad_movimientos_contables_clean;
+
+DROP TABLE IF EXISTS stg_contabilidad_areas_raw;
+DROP TABLE IF EXISTS stg_contabilidad_centros_costo_raw;
+DROP TABLE IF EXISTS stg_contabilidad_cuentas_contables_raw;
+DROP TABLE IF EXISTS stg_contabilidad_movimientos_contables_raw;
+
+-- -----------------------------------------------------------------------------
+-- RAW TEMPORAL
+-- -----------------------------------------------------------------------------
+
+CREATE TEMP TABLE stg_contabilidad_areas_raw AS
+SELECT *
+FROM areas;
+
+CREATE TEMP TABLE stg_contabilidad_centros_costo_raw AS
+SELECT *
+FROM centros_costo;
+
+CREATE TEMP TABLE stg_contabilidad_cuentas_contables_raw AS
+SELECT *
+FROM cuentas_contables;
+
+CREATE TEMP TABLE stg_contabilidad_movimientos_contables_raw AS
+SELECT *
+FROM movimientos_contables;
+
+-- -----------------------------------------------------------------------------
+-- STAGING / CLEAN TEMPORAL
+-- Misma lógica de los scripts aprobados en etl/sql/staging/contabilidad/
+-- -----------------------------------------------------------------------------
+
+CREATE TEMP TABLE stg_contabilidad_areas_clean AS
+SELECT
+    area_id,
+    UPPER(TRIM(codigo_area)) AS codigo_area,
+    TRIM(nombre_area) AS nombre_area
+FROM stg_contabilidad_areas_raw;
+
+CREATE TEMP TABLE stg_contabilidad_centros_costo_clean AS
+SELECT
+    centro_costo_id,
+    UPPER(TRIM(codigo)) AS codigo,
+    TRIM(nombre) AS nombre,
+    area_id,
+    NULLIF(TRIM(responsable), '') AS responsable,
+    UPPER(TRIM(estado)) AS estado
+FROM stg_contabilidad_centros_costo_raw;
+
+CREATE TEMP TABLE stg_contabilidad_cuentas_contables_clean AS
+SELECT
+    cuenta_id,
+    UPPER(TRIM(codigo_cuenta)) AS codigo_cuenta,
+    TRIM(nombre_cuenta) AS nombre_cuenta,
+    UPPER(TRIM(tipo_cuenta)) AS tipo_cuenta,
+    UPPER(TRIM(grupo)) AS grupo,
+    nivel,
+    cuenta_padre_id,
+    UPPER(TRIM(estado)) AS estado
+FROM stg_contabilidad_cuentas_contables_raw;
+
+CREATE TEMP TABLE stg_contabilidad_movimientos_contables_clean AS
+SELECT
+    movimiento_id,
+    CAST(fecha AS DATE) AS fecha,
+    cuenta_id,
+    centro_costo_id,
+    UPPER(TRIM(documento_tipo)) AS documento_tipo,
+    TRIM(documento_numero) AS documento_numero,
+    TRIM(descripcion) AS descripcion,
+    debe,
+    haber,
+    UPPER(TRIM(moneda)) AS moneda,
+    tipo_cambio
+FROM stg_contabilidad_movimientos_contables_raw;
+
+\echo '=== STAGING TEMPORAL CONTABILIDAD PREPARADO ==='
+
 -- =============================================================================
 -- INFORME DE PRUEBAS TÉCNICAS: VALIDACIÓN SOURCE-TO-STAGING
 -- Dominio: Contabilidad
@@ -199,3 +290,47 @@ FROM stg_contabilidad_movimientos_contables_clean
 WHERE moneda IS NULL 
    OR LENGTH(moneda) = 0 
    OR moneda <> TRIM(moneda);
+
+-- =============================================================================
+-- BLOQUE 6: CONTROLES ADICIONALES DE TRAZABILIDAD
+-- =============================================================================
+
+-- 6.1 Centros de costo con area_id inexistente
+-- Criterio de éxito: 0 filas.
+SELECT
+    cc.centro_costo_id,
+    cc.codigo,
+    cc.area_id
+FROM stg_contabilidad_centros_costo_clean cc
+LEFT JOIN stg_contabilidad_areas_clean a
+    ON cc.area_id = a.area_id
+WHERE a.area_id IS NULL;
+
+
+-- 6.2 Preservación semántica de moneda Source -> Staging
+-- Compara el valor normalizado esperado desde Source con el valor CLEAN.
+-- Criterio de éxito: 0 filas.
+SELECT
+    s.movimiento_id,
+    s.moneda AS moneda_source,
+    c.moneda AS moneda_staging
+FROM movimientos_contables s
+JOIN stg_contabilidad_movimientos_contables_clean c
+    ON c.movimiento_id = s.movimiento_id
+WHERE UPPER(TRIM(s.moneda)) IS DISTINCT FROM c.moneda;
+
+
+-- 6.3 Preservación y normalización de documento_tipo
+-- Criterio de éxito: 0 filas.
+SELECT
+    s.movimiento_id,
+    s.documento_tipo AS documento_tipo_source,
+    c.documento_tipo AS documento_tipo_staging
+FROM movimientos_contables s
+JOIN stg_contabilidad_movimientos_contables_clean c
+    ON c.movimiento_id = s.movimiento_id
+WHERE UPPER(TRIM(s.documento_tipo))
+      IS DISTINCT FROM c.documento_tipo
+   OR c.documento_tipo IS NULL
+   OR c.documento_tipo = '';
+
