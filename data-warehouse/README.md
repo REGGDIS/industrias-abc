@@ -98,7 +98,8 @@ data-warehouse/
         ├── test_001_esquema_dw.sql
         ├── test_020_dimensiones.sql
         ├── test_030_restricciones_indices.sql
-        └── test_040_fact_asistencia.sql
+        ├── test_040_fact_asistencia.sql
+        └── test_050_integridad_historica_rrhh.sql
 ```
 
 La carpeta `10_technical` queda reservada para futuras estructuras técnicas del Data Warehouse.
@@ -205,6 +206,8 @@ fecha_hasta IS NULL
 ```
 
 Se utiliza un índice único parcial para asegurar que exista como máximo una versión actual por RUT normalizado.
+
+Los solapamientos históricos entre versiones de un mismo RUT se consideran un error de calidad y deben detectarse durante la carga SCD2 y las validaciones ETL. En el modelo físico actual no se incorpora una restricción `EXCLUDE` adicional para este caso.
 
 ## DIM_FECHA
 
@@ -359,7 +362,9 @@ Actualmente se validan:
 - claves foráneas;
 - índices críticos;
 - índice único parcial de `dim_empleado`;
-- estructura completa de `FACT_ASISTENCIA`.
+- estructura completa de `FACT_ASISTENCIA`;
+- integridad histórica SCD2 de `DIM_EMPLEADO`;
+- compatibilidad temporal entre `DIM_EMPLEADO` y `FACT_ASISTENCIA`.
 
 Tests disponibles:
 
@@ -368,6 +373,7 @@ test_001_esquema_dw.sql
 test_020_dimensiones.sql
 test_030_restricciones_indices.sql
 test_040_fact_asistencia.sql
+test_050_integridad_historica_rrhh.sql
 ```
 
 ### Test estructural de FACT_ASISTENCIA
@@ -400,6 +406,40 @@ La tabla también fue inspeccionada directamente en PostgreSQL, confirmándose:
 - 1 primary key;
 - 1 restricción UNIQUE para `empleado_key + fecha_key`;
 - 4 índices complementarios.
+
+### Validación histórica SCD2 de RRHH
+
+Archivo:
+
+```text
+data-warehouse/tests/structural/test_050_integridad_historica_rrhh.sql
+```
+
+El test valida la integridad temporal de `DIM_EMPLEADO` y su compatibilidad con `FACT_ASISTENCIA`.
+
+Se comprueba:
+
+- que no exista más de una versión actual por RUT;
+- que las vigencias sean válidas;
+- que no existan solapamientos históricos en los datos actuales;
+- que el lookup `RUT + fecha del hecho` resuelva correctamente una única versión;
+- que el intervalo de vigencia se interprete como `[fecha_desde, fecha_hasta)`;
+- que una segunda versión actual del mismo RUT sea rechazada;
+- que un solapamiento SCD2 intencional sea detectado por el control de calidad;
+- que `FACT_ASISTENCIA` pueda relacionarse con la versión histórica correcta de `DIM_EMPLEADO`;
+- que el miembro desconocido de `DIM_EMPLEADO` mantenga su contrato.
+
+La prueba se ejecuta íntegramente dentro de una transacción y finaliza con `ROLLBACK`, por lo que no deja fixtures ni registros temporales persistentes.
+
+Resultado validado sobre PostgreSQL 16:
+
+```text
+TEST OK: integridad histórica SCD2 de RRHH y compatibilidad con FACT_ASISTENCIA verificadas.
+```
+
+También se comprobó posteriormente que no quedaran filas de fixture en `DIM_EMPLEADO` ni en `FACT_ASISTENCIA`.
+
+Como decisión de diseño, los solapamientos históricos se controlarán en la etapa de carga SCD2 y validación ETL. No se incorpora por ahora una restricción física adicional de exclusión en PostgreSQL.
 
 ## Convenciones de restricciones e índices
 
@@ -477,6 +517,9 @@ Los nombres descriptivos pueden utilizarse como apoyo de validación, pero no de
 - `DIM_EMPLEADO`
 - `DIM_TURNO`
 - `FACT_ASISTENCIA`
+- integridad histórica SCD2 de RRHH
+- resolución temporal `RUT + fecha`
+- compatibilidad histórica entre `DIM_EMPLEADO` y `FACT_ASISTENCIA`
 - índices CORE y de Asistencia
 - instaladores reproducibles
 - tests estructurales
@@ -504,6 +547,7 @@ La carga ETL hacia las tablas `dw.*` permanece pendiente. En esa etapa se implem
 
 - lookups dimensionales;
 - tratamiento SCD;
+- control explícito de solapamientos históricos;
 - mappings;
 - eventos REVIEW;
 - carga incremental;
