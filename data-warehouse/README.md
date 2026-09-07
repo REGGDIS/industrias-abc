@@ -2,7 +2,7 @@
 
 Este directorio contiene la definición e implementación del Data Warehouse corporativo de Industrias ABC.
 
-El objetivo es centralizar y homologar información proveniente de múltiples fuentes operacionales, aplicando un modelo dimensional integrado y preparado para cargas ETL, análisis y posterior consumo desde herramientas de Business Intelligence.
+El objetivo es centralizar y homologar información proveniente de múltiples fuentes operacionales, aplicando un modelo dimensional integrado y preparado para cargas ETL, análisis y posterior consumo desde herramientas de Business Intelligence y desde la aplicación analítica del proyecto.
 
 ## Motor y esquema
 
@@ -22,7 +22,7 @@ Todos los objetos dimensionales y de hechos del Data Warehouse deben crearse den
 
 ## Estado actual
 
-Actualmente se encuentra implementado y validado el DW-CORE físico.
+Actualmente se encuentra implementado y validado el DW-CORE físico y la primera tabla de hechos del Data Warehouse.
 
 El CORE contiene las dimensiones comunes que serán reutilizadas por distintos dominios y tablas de hechos del Data Warehouse.
 
@@ -34,6 +34,37 @@ Dimensiones implementadas:
 - `dw.dim_cargo`
 - `dw.dim_empleado`
 - `dw.dim_turno`
+
+### Tabla de hechos implementada
+
+Actualmente se encuentra implementada y validada físicamente la primera tabla de hechos del Data Warehouse:
+
+- `dw.fact_asistencia`
+
+**Grano:** una fila por empleado empresarial y fecha con registro de asistencia.
+
+**Fuente principal:** Sistema Operacional de Asistencia (MySQL).
+
+**Dimensiones relacionadas:**
+
+- `dw.dim_fecha`
+- `dw.dim_empleado`
+- `dw.dim_area`
+- `dw.dim_cargo`
+- `dw.dim_centro_costo`
+- `dw.dim_turno`
+
+**Medidas principales:**
+
+- `horas_trabajadas`
+- `horas_normales`
+- `horas_extras`
+- `minutos_atraso`
+- `dias_trabajados`
+- `dias_ausentes`
+- `cantidad_registros`
+
+`FACT_ASISTENCIA` utiliza la versión histórica correcta de `DIM_EMPLEADO`. La resolución futura durante la carga ETL deberá realizarse mediante RUT normalizado + fecha del hecho, aplicando la vigencia SCD Tipo 2 de la dimensión.
 
 ## Estructura principal
 
@@ -53,15 +84,21 @@ data-warehouse/
 │   │   ├── 060_crear_dim_empleado.sql
 │   │   └── 070_crear_dim_turno.sql
 │   ├── 30_indexes/
-│   │   └── 080_crear_indices_dimensiones.sql
+│   │   ├── 080_crear_indices_dimensiones.sql
+│   │   └── 110_crear_indices_fact_asistencia.sql
+│   ├── 40_facts/
+│   │   └── 100_crear_fact_asistencia.sql
 │   └── 99_install/
+│       ├── 998_instalar_dw_rrhh_asistencia.sql
 │       └── 999_instalar_dw_core.sql
 ├── templates/
+│   └── plantilla_dimension_ddl.sql
 └── tests/
     └── structural/
         ├── test_001_esquema_dw.sql
         ├── test_020_dimensiones.sql
-        └── test_030_restricciones_indices.sql
+        ├── test_030_restricciones_indices.sql
+        └── test_040_fact_asistencia.sql
 ```
 
 La carpeta `10_technical` queda reservada para futuras estructuras técnicas del Data Warehouse.
@@ -199,6 +236,44 @@ El rango puede ampliarse posteriormente sin recrear la dimensión.
 
 Los nombres de días y meses se generan explícitamente en español y no dependen de la configuración regional del servidor.
 
+## FACT_ASISTENCIA
+
+`dw.fact_asistencia` representa los eventos diarios de asistencia del dominio analítico RRHH.
+
+Su grano es:
+
+```text
+1 fila por empleado empresarial y fecha con registro de asistencia
+```
+
+La tabla se relaciona con:
+
+```text
+dw.dim_fecha
+dw.dim_empleado
+dw.dim_area
+dw.dim_cargo
+dw.dim_centro_costo
+dw.dim_turno
+```
+
+La granularidad queda protegida mediante:
+
+```text
+UNIQUE (empleado_key, fecha_key)
+```
+
+La tabla incluye medidas de horas trabajadas, horas normales, horas extras, atraso, días trabajados, días ausentes y cantidad de registros.
+
+Se implementan controles de coherencia para:
+
+- estados `PRESENTE`, `ATRASO` y `AUSENTE`;
+- horas no negativas;
+- `horas_extras <= horas_trabajadas`;
+- minutos de atraso no negativos;
+- coherencia entre estado y días trabajados/ausentes;
+- ausencia con horas y marcaciones en cero o nulas según corresponda.
+
 ## Instalación del DW-CORE
 
 El instalador principal es:
@@ -234,6 +309,39 @@ Si ocurre un error durante la instalación, la operación no debe quedar parcial
 
 El instalador utiliza `\ir`, por lo que las rutas se resuelven relativamente al propio archivo SQL.
 
+### Instalación del paquete DW-RRHH / Asistencia
+
+`FACT_ASISTENCIA` se instala después del DW-CORE, ya que depende de las dimensiones conformadas comunes.
+
+Instalador:
+
+```text
+data-warehouse/sql/99_install/998_instalar_dw_rrhh_asistencia.sql
+```
+
+Ejemplo:
+
+```bash
+psql -U dw_user -d industrias_abc_dw \
+  -f data-warehouse/sql/99_install/998_instalar_dw_rrhh_asistencia.sql
+```
+
+El instalador ejecuta, dentro de una transacción:
+
+1. `100_crear_fact_asistencia.sql`
+2. `110_crear_indices_fact_asistencia.sql`
+
+El script utiliza `ON_ERROR_STOP`, `BEGIN` y `COMMIT`, por lo que un error durante la instalación impide dejar el paquete parcialmente aplicado.
+
+El paquete requiere que previamente existan:
+
+- `dw.dim_fecha`
+- `dw.dim_empleado`
+- `dw.dim_area`
+- `dw.dim_cargo`
+- `dw.dim_centro_costo`
+- `dw.dim_turno`
+
 ## Validación estructural
 
 Los tests estructurales se encuentran en:
@@ -250,7 +358,8 @@ Actualmente se validan:
 - restricciones `UNIQUE`;
 - claves foráneas;
 - índices críticos;
-- índice único parcial de `dim_empleado`.
+- índice único parcial de `dim_empleado`;
+- estructura completa de `FACT_ASISTENCIA`.
 
 Tests disponibles:
 
@@ -258,7 +367,39 @@ Tests disponibles:
 test_001_esquema_dw.sql
 test_020_dimensiones.sql
 test_030_restricciones_indices.sql
+test_040_fact_asistencia.sql
 ```
+
+### Test estructural de FACT_ASISTENCIA
+
+Archivo:
+
+```text
+data-warehouse/tests/structural/test_040_fact_asistencia.sql
+```
+
+El test verifica automáticamente:
+
+- existencia de `dw.fact_asistencia`;
+- `pk_fact_asistencia`;
+- unicidad del grano mediante `uq_fact_asistencia_empleado_fecha`;
+- las seis claves foráneas hacia dimensiones;
+- los CHECK de dominio y coherencia;
+- los índices complementarios de fecha, turno, área y centro de costo.
+
+La implementación fue validada contra PostgreSQL 16 real con resultado:
+
+```text
+TEST OK: FACT_ASISTENCIA, restricciones e índices verificados.
+```
+
+La tabla también fue inspeccionada directamente en PostgreSQL, confirmándose:
+
+- 6 claves foráneas;
+- 12 restricciones CHECK;
+- 1 primary key;
+- 1 restricción UNIQUE para `empleado_key + fecha_key`;
+- 4 índices complementarios.
 
 ## Convenciones de restricciones e índices
 
@@ -324,26 +465,56 @@ Reglas principales:
 
 Los nombres descriptivos pueden utilizarse como apoyo de validación, pero no deben ser la clave principal de homologación cuando exista una business key formal.
 
+## Estado actual del Data Warehouse
+
+### Implementado y validado
+
+- Esquema `dw`
+- `DIM_FECHA`
+- `DIM_AREA`
+- `DIM_CENTRO_COSTO`
+- `DIM_CARGO`
+- `DIM_EMPLEADO`
+- `DIM_TURNO`
+- `FACT_ASISTENCIA`
+- índices CORE y de Asistencia
+- instaladores reproducibles
+- tests estructurales
+
+### Pendiente dentro del Bloque 5
+
+- `DIM_PROVEEDOR`
+- `DIM_INSUMO`
+- `DIM_PRODUCTO`
+- `DIM_CUENTA_CONTABLE`
+- `DIM_CONTRATO`
+- `FACT_COMPRAS`
+- `FACT_CONTABILIDAD`
+- `FACT_REMUNERACIONES`
+- `FACT_PRODUCCION`
+- `FACT_CONSUMO_INSUMO`
+
 ## Próximas etapas
 
-Después del DW-CORE se incorporarán las dimensiones y tablas de hechos específicas de negocio, entre ellas:
+Después de completar las dimensiones y tablas de hechos pendientes del Bloque 5, se implementarán las cargas ETL hacia el Data Warehouse.
 
-```text
-DIM_PROVEEDOR
-DIM_INSUMO
-DIM_PRODUCTO
-DIM_CUENTA_CONTABLE
-DIM_CONTRATO
+### Etapa posterior — Bloque 6
 
-FACT_ASISTENCIA
-FACT_REMUNERACIONES
-FACT_COMPRAS
-FACT_CONTABILIDAD
-FACT_PRODUCCION
-FACT_CONSUMO_INSUMO
-```
+La carga ETL hacia las tablas `dw.*` permanece pendiente. En esa etapa se implementarán:
 
-Posteriormente se implementarán las cargas ETL hacia el Data Warehouse y las validaciones integrales antes del consumo desde Power BI.
+- lookups dimensionales;
+- tratamiento SCD;
+- mappings;
+- eventos REVIEW;
+- carga incremental;
+- idempotencia;
+- reconciliaciones;
+- validación integral del Data Warehouse.
+
+Una vez completada y validada la carga del DW, se preparará su consumo desde:
+
+- Power BI;
+- la aplicación analítica del proyecto.
 
 ## Regla de trabajo
 
