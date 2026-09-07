@@ -1,25 +1,104 @@
-# Matriz de calidad — Contratos y Remuneraciones (v0.2)
+# Matriz de calidad — Contratos y Remuneraciones
 
 **Dominio:** Contratos y Remuneraciones
 **Responsable:** Luis Figueroa
-**Alcance de esta versión:** Empleado, Contrato, Liquidación (las 3 entidades del Encargo 0.2)
+**Alcance final:** cinco entidades del dominio
 
-Esta matriz refleja las reglas mínimas exigidas por el Encargo 0.2 e implementadas en `etl/validate/contratos_remuneraciones.py`, con pruebas en `etl/tests/test_contratos_remuneraciones_validate.py`.
+La matriz corresponde a las reglas implementadas en:
 
-| Entidad | Regla | Severidad | Dónde se implementa |
-|---|---|---|---|
-| Contrato | `fecha_inicio` > `fecha_termino` | **ERROR** | `rule_fecha_inicio_mayor_termino` |
-| Contrato | `sueldo_base` negativo | **ERROR** | `rule_monto_negativo` |
-| Contrato | Vencido (`fecha_termino` en el pasado) pero `estado = VIGENTE` | **WARNING** | `rule_contrato_vencido` + columna derivada `contrato_vencido` en staging |
-| Liquidacion | Sin `empleado_id` asociado | **ERROR** | `rule_liquidacion_sin_empleado` |
-| Liquidacion | Algún monto negativo (sueldo_base, horas_extras, sueldo_imponible, sueldo_liquido, costo_empresa) | **ERROR** | `rule_monto_negativo` |
-| Empleado | `rut_referencia` nulo, vacío o con formato claramente inválido | **ERROR** | `rule_rut_invalido` |
-| Todas | Texto con espacios extremos / mayúsculas inconsistentes | **CLEAN** (ya resuelto) | Limpieza aplicada en las vistas `staging.*` (`LTRIM`/`RTRIM`/`UPPER`) |
+```text
+etl/validate/contratos_remuneraciones/validator.py
+```
 
-## Criterio de tratamiento
+y verificadas mediante:
 
-- **ERROR**: bloquea el avance del registro hacia ETL Core. No se descarta automáticamente el dato; queda reportado por `etl/validate/contratos_remuneraciones.py` para que el equipo decida cómo corregirlo en el origen.
-- **WARNING**: el dato es válido a nivel de esquema, pero representa una situación operativa a revisar (un contrato vencido que nadie cerró). No bloquea el flujo.
-- **CLEAN**: ya resuelto en la capa `staging` (vistas SQL), no requiere intervención adicional del script de validación.
+```text
+etl/tests/test_contratos_remuneraciones_validate.py
+```
 
-## Cómo se ejecuta
+## Reglas por entidad
+
+| Entidad            | Regla                                  | Severidad |
+| ------------------ | -------------------------------------- | --------- |
+| Empleado           | RUT nulo, vacío o con formato inválido | ERROR     |
+| Contrato           | `fecha_inicio > fecha_termino`         | ERROR     |
+| Contrato           | `sueldo_base < 0`                      | ERROR     |
+| Contrato           | vencido pero aún `VIGENTE`             | WARNING   |
+| Liquidacion        | empleado ausente                       | ERROR     |
+| Liquidacion        | montos negativos                       | ERROR     |
+| ConceptoPago       | código obligatorio vacío               | ERROR     |
+| ConceptoPago       | descripción obligatoria vacía          | ERROR     |
+| ConceptoPago       | tipo fuera de `HABER/DESCUENTO/APORTE` | ERROR     |
+| DetalleLiquidacion | `liquidacion_id` nulo                  | ERROR     |
+| DetalleLiquidacion | `concepto_id` nulo                     | ERROR     |
+| DetalleLiquidacion | monto nulo                             | ERROR     |
+| DetalleLiquidacion | monto negativo                         | ERROR     |
+
+## Reglas cruzadas
+
+| Control                                              | Severidad |
+| ---------------------------------------------------- | --------- |
+| Contrato referencia empleado inexistente             | ERROR     |
+| Liquidacion referencia empleado inexistente          | ERROR     |
+| Liquidacion referencia contrato inexistente          | ERROR     |
+| Contrato de la liquidación pertenece a otro empleado | ERROR     |
+| Detalle referencia liquidación inexistente           | ERROR     |
+| Detalle referencia concepto inexistente              | ERROR     |
+| Número de contrato duplicado                         | ERROR     |
+| Empleado + período duplicado en liquidaciones        | ERROR     |
+| Código de concepto duplicado                         | ERROR     |
+| Liquidación + concepto duplicado en detalle          | ERROR     |
+
+## Tratamiento
+
+**ERROR** bloquea el cierre del ETL. Si existe al menos un error:
+
+```text
+status = ERROR
+stage = validacion
+controles_error = 1
+```
+
+**WARNING** registra una situación que requiere revisión pero no bloquea el flujo. Por ejemplo, un contrato cuyo `fecha_termino` ya pasó pero continúa marcado como `VIGENTE`.
+
+Las transformaciones identificadas como limpieza superficial se realizan en STAGING y no se registran como defectos cuando quedaron corregidas de manera determinística.
+
+## Evidencia base
+
+La corrida real sobre SQL Server produjo:
+
+```text
+procesados = 235
+validos = 235
+errores = 0
+warnings = 0
+status = OK
+```
+
+## Evidencia de detección
+
+Se ejecutó un fallo controlado sobre una copia en memoria de `DetalleLiquidacion`, asignando:
+
+```text
+monto = -100
+```
+
+Resultado:
+
+```text
+procesados = 235
+validos = 234
+errores = 1
+warnings = 0
+status = ERROR
+stage = validacion
+controles_error = 1
+```
+
+Regla detectada:
+
+```text
+monto_negativo
+```
+
+Esto confirma tanto ausencia de falsos positivos en la corrida base como la capacidad del ETL para bloquear un error real de calidad.

@@ -1,42 +1,142 @@
-Evidencia de validación — Contratos y Remuneraciones (v0.2)
+# Evidencia de validación — Contratos y Remuneraciones
 
-⚠️ Esta evidencia se generó revisando el código y ejecutando las pruebas unitarias (que no requieren base de datos). La ejecución real de etl/validate/contratos_remuneraciones.py contra SQL Server debe hacerla el responsable del dominio y actualizar los resultados reales abajo antes de cerrar el PR.
+**Proyecto:** Business Intelligence — Industrias ABC
+**Dominio:** Contratos y Remuneraciones
+**Responsable del dominio:** Luis Figueroa
+**Motor:** Microsoft SQL Server 2022
+**Base:** `ContratosRemuneraciones_ABC`
+**Puerto local:** `1434`
 
-Pruebas unitarias (sin base de datos)
-pytest etl/tests/test_contratos_remuneraciones_validate.py -v
+## Estado
 
-============================= test session starts ==============================
-collected 26 items
+La validación dejó de estar pendiente. El flujo completo fue ejecutado contra la base SQL Server real utilizando las cinco entidades del dominio:
 
-... 26 passed in 0.04s
+- Empleado
+- Contrato
+- Liquidacion
+- ConceptoPago
+- DetalleLiquidacion
 
-Todas las funciones de regla (rule_rut_invalido, rule_fecha_inicio_mayor_termino, rule_contrato_vencido, rule_liquidacion_sin_empleado, rule_monto_negativo) y las funciones de clasificación por entidad (evaluar_empleado, evaluar_contrato, evaluar_liquidacion) están cubiertas, incluyendo casos límite (RUT vacío/nulo/formato inválido, contrato vencido vs. terminado, montos negativos, ausencia de fecha_termino en indefinidos).
+El flujo validado es:
 
-Ejecución contra la base de datos real — PENDIENTE DE COMPLETAR
+```text
+dbo.*
+  -> RAW física
+  -> STAGING
+  -> validación Python
+  -> auditoría JSON
+```
 
-Ejecutar en orden y pegar aquí los resultados reales:
+## Carga RAW real
 
--- 1) Cargar RAW
-etl/sql/load/contratos_remuneraciones/empleado.sql
-etl/sql/load/contratos_remuneraciones/contrato.sql
-etl/sql/load/contratos_remuneraciones/liquidacion.sql
+| Entidad            | Filas RAW |
+| ------------------ | --------: |
+| Empleado           |        80 |
+| Contrato           |        21 |
+| Liquidacion        |        19 |
+| ConceptoPago       |         9 |
+| DetalleLiquidacion |       106 |
+| **TOTAL**          |   **235** |
 
--- 2) Crear vistas de staging
-etl/sql/staging/contratos_remuneraciones/empleado.sql
-etl/sql/staging/contratos_remuneraciones/contrato.sql
-etl/sql/staging/contratos_remuneraciones/liquidacion.sql
+## STAGING real
 
--- 3) Validar
-python etl/validate/contratos_remuneraciones.py
+Los conteos de STAGING coincidieron con RAW:
 
-Resultado esperado (a confirmar con los datos reales del seed.sql, 80 empleados / 21 contratos / 19 liquidaciones):
+```text
+empleado: 80
+contrato: 21
+liquidacion: 19
+concepto_pago: 9
+detalle_liquidacion: 106
+TOTAL: 235
+```
 
- raw.contratos_remuneraciones_empleado: ___ filas
- raw.contratos_remuneraciones_contrato: ___ filas
- raw.contratos_remuneraciones_liquidacion: ___ filas
- Hallazgos ERROR: ___
- Hallazgos WARNING: ___
- Detalle de hallazgos (pegar salida completa del script aquí)
-Nota sobre datos de prueba "limpios"
+## Validación real
 
-El seed.sql de la base operacional (v0.1/v0.2 corregido) se generó sin inconsistencias intencionales (sueldos, fechas y RUTs válidos). Por lo tanto, es esperable que la ejecución real contra esos datos arroje 0 ERROR y 0 WARNING — lo cual demuestra que las reglas no generan falsos positivos, pero no prueba por sí solo que detecten problemas reales. Se recomienda, antes de la entrega final del equipo, insertar 2-3 filas de prueba con inconsistencias deliberadas (ver sección 15 del Informe Universo Empresarial) y volver a correr etl/validate/contratos_remuneraciones.py para confirmar que las reglas sí las detectan, y documentar esa segunda corrida aquí también.
+Comando oficial:
+
+```bash
+python -m etl.validate.contratos_remuneraciones.validator
+```
+
+Resultado:
+
+```text
+Validación Contratos y Remuneraciones — 0 hallazgos
+0 ERROR
+0 WARNING
+
+Sin hallazgos. Todas las reglas mínimas se cumplen.
+```
+
+## Runner de cierre
+
+```bash
+python -m etl.validate.contratos_remuneraciones.runner --output docs/etl/contratos_remuneraciones/evidencia_ejecucion.json
+```
+
+Resultado real:
+
+```text
+run_id = 900176ef-c209-45ae-84c5-ebba34a8c10c
+status = OK
+stage = null
+procesados = 235
+validos = 235
+review = 0
+errores = 0
+warnings = 0
+controles_error = 0
+```
+
+## Fallo controlado
+
+Se alteró temporalmente en memoria un registro de `DetalleLiquidacion`:
+
+```text
+monto = -100
+```
+
+Resultado:
+
+```text
+run_id = ab12cecf-c7d5-47ce-a79c-08d16edb46a0
+status = ERROR
+stage = validacion
+procesados = 235
+validos = 234
+errores = 1
+warnings = 0
+controles_error = 1
+```
+
+Hallazgo:
+
+```text
+entidad = DetalleLiquidacion
+identificador = 1
+regla = monto_negativo
+severidad = ERROR
+detalle = monto=-100
+```
+
+## Pruebas
+
+```text
+Validación del dominio: 34 passed
+Runner: 4 passed
+Suite global: 132 passed, 38 skipped
+```
+
+## Entorno validado
+
+```text
+Microsoft SQL Server 2022
+Base: ContratosRemuneraciones_ABC
+Contenedor: industrias-abc-contratos-rem-db
+Puerto host: 1434
+ODBC Driver 17 for SQL Server
+pyodbc 5.3.0
+```
+
+La configuración reutiliza `get_contratos_rem_db_config()` y no se versionan credenciales.

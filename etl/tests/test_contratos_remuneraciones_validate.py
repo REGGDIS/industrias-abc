@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-_MODULE_PATH = Path(__file__).resolve().parent.parent / "validate" / "contratos_remuneraciones.py"
+_MODULE_PATH = Path(__file__).resolve().parent.parent / "validate" / "contratos_remuneraciones" / "validator.py"
 _spec = importlib.util.spec_from_file_location("contratos_remuneraciones_validate", _MODULE_PATH)
 _module = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = _module  # necesario para que @dataclass resuelva su módulo
@@ -214,3 +214,156 @@ def test_finding_es_dataclass_comparable():
     a = Finding(entidad="Contrato", identificador=1, regla="x", severidad="ERROR")
     b = Finding(entidad="Contrato", identificador=1, regla="x", severidad="ERROR")
     assert a == b
+
+# ---------------------------------------------------------------------------
+# ConceptoPago
+# ---------------------------------------------------------------------------
+
+def test_evaluar_concepto_pago_ok():
+    row = {
+        "concepto_id": 1,
+        "codigo": "SUELDO_BASE",
+        "descripcion": "Sueldo base",
+        "tipo": "HABER",
+        "afecta_imponible": True,
+    }
+    assert _module.evaluar_concepto_pago(row) == []
+
+
+def test_evaluar_concepto_pago_tipo_invalido():
+    row = {
+        "concepto_id": 2,
+        "codigo": "TEST",
+        "descripcion": "Concepto prueba",
+        "tipo": "OTRO",
+        "afecta_imponible": False,
+    }
+    findings = _module.evaluar_concepto_pago(row)
+    assert any(f.regla == "tipo_concepto_invalido" for f in findings)
+
+
+def test_evaluar_concepto_pago_codigo_vacio():
+    row = {
+        "concepto_id": 3,
+        "codigo": "   ",
+        "descripcion": "Concepto prueba",
+        "tipo": "HABER",
+        "afecta_imponible": True,
+    }
+    findings = _module.evaluar_concepto_pago(row)
+    assert any(f.regla == "codigo_obligatorio" for f in findings)
+
+
+# ---------------------------------------------------------------------------
+# DetalleLiquidacion
+# ---------------------------------------------------------------------------
+
+def test_evaluar_detalle_liquidacion_ok():
+    row = {
+        "detalle_id": 1,
+        "liquidacion_id": 1,
+        "concepto_id": 1,
+        "monto": 100000,
+    }
+    assert _module.evaluar_detalle_liquidacion(row) == []
+
+
+def test_evaluar_detalle_liquidacion_monto_negativo():
+    row = {
+        "detalle_id": 2,
+        "liquidacion_id": 1,
+        "concepto_id": 1,
+        "monto": -100,
+    }
+    findings = _module.evaluar_detalle_liquidacion(row)
+    assert any(f.regla == "monto_negativo" for f in findings)
+
+
+def test_evaluar_detalle_liquidacion_referencias_nulas():
+    row = {
+        "detalle_id": 3,
+        "liquidacion_id": None,
+        "concepto_id": None,
+        "monto": 100,
+    }
+    findings = _module.evaluar_detalle_liquidacion(row)
+    reglas = {f.regla for f in findings}
+    assert "liquidacion_id_obligatorio" in reglas
+    assert "concepto_id_obligatorio" in reglas
+
+def test_evaluar_relaciones_detecta_huerfanos_y_contrato_otro_empleado():
+    empleados = [{"empleado_id": "EMP001"}]
+
+    contratos = [{
+        "contrato_id": 1,
+        "empleado_id": "EMP001",
+        "numero_contrato": "C-001",
+    }]
+
+    liquidaciones = [
+        {
+            "liquidacion_id": 1,
+            "empleado_id": "EMP999",
+            "contrato_id": 1,
+            "periodo": "2026-08",
+        }
+    ]
+
+    conceptos = [{"concepto_id": 1, "codigo": "SUELDO"}]
+
+    detalles = [{
+        "detalle_id": 1,
+        "liquidacion_id": 999,
+        "concepto_id": 999,
+    }]
+
+    findings = _module.evaluar_relaciones(
+        empleados,
+        contratos,
+        liquidaciones,
+        conceptos,
+        detalles,
+    )
+
+    reglas = {f.regla for f in findings}
+
+    assert "empleado_huerfano" in reglas
+    assert "contrato_otro_empleado" in reglas
+    assert "liquidacion_huerfana" in reglas
+    assert "concepto_huerfano" in reglas
+
+
+def test_evaluar_duplicados_detecta_claves_de_negocio():
+    contratos = [
+        {"numero_contrato": "C-001"},
+        {"numero_contrato": "C-001"},
+    ]
+
+    liquidaciones = [
+        {"empleado_id": "EMP001", "periodo": "2026-08"},
+        {"empleado_id": "EMP001", "periodo": "2026-08"},
+    ]
+
+    conceptos = [
+        {"codigo": "SUELDO"},
+        {"codigo": "SUELDO"},
+    ]
+
+    detalles = [
+        {"liquidacion_id": 1, "concepto_id": 1},
+        {"liquidacion_id": 1, "concepto_id": 1},
+    ]
+
+    findings = _module.evaluar_duplicados(
+        contratos,
+        liquidaciones,
+        conceptos,
+        detalles,
+    )
+
+    reglas = {f.regla for f in findings}
+
+    assert "numero_contrato_duplicado" in reglas
+    assert "empleado_periodo_duplicado" in reglas
+    assert "codigo_duplicado" in reglas
+    assert "liquidacion_concepto_duplicado" in reglas
