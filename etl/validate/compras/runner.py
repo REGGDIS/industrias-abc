@@ -44,7 +44,6 @@ PROCESO = "compras_etl"
 def _default_stages() -> list[tuple[str, Path]]:
     """Etapas mínimas del cierre, registradas por separado."""
     return [
-        ("preparacion_raw", SQL_STAGING / "preparar_raw_compras.sql"),
         ("normalizacion", SQL_STAGING / "ejecutar_normalizacion_compras.sql"),
         ("validaciones_calidad", SQL_VALIDATE / "validaciones_calidad_compras.sql"),
         ("pruebas_normalizacion", SQL_TESTS / "test_normalizacion_compras.sql"),
@@ -70,21 +69,57 @@ def _psql(conninfo: str, password: str, sql_path: Path) -> tuple[int, str, str]:
     return proc.returncode, proc.stdout, proc.stderr
 
 
-def _parse_metricas(stdout: str) -> dict | None:
-    """Lee la fila 'TOTAL|procesados|normalizados|en_revision|errores' del resumen 0.4."""
+def _parse_total(stdout: str) -> tuple[int, int, int, int] | None:
+    """Lee una fila TOTAL con cuatro métricas numéricas."""
     for line in stdout.splitlines():
-        parts = line.split("|")
-        if parts and parts[0].strip() == "TOTAL" and len(parts) >= 5:
+        parts = [part.strip() for part in line.split("|")]
+
+        if len(parts) >= 5 and parts[0] == "TOTAL":
             try:
-                return {
-                    "procesados": int(parts[1]),
-                    "validos": int(parts[2]),
-                    "review": int(parts[3]),
-                    "errores": int(parts[4]),
-                }
+                return (
+                    int(parts[1]),
+                    int(parts[2]),
+                    int(parts[3]),
+                    int(parts[4]),
+                )
             except ValueError:
                 return None
+
     return None
+
+
+def _parse_normalizacion(stdout: str) -> dict | None:
+    """Métricas 0.4: campos evaluados, no registros transaccionales."""
+    total = _parse_total(stdout)
+
+    if total is None:
+        return None
+
+    procesados, normalizados, review, errores = total
+
+    return {
+        "procesados": procesados,
+        "normalizados": normalizados,
+        "review": review,
+        "errores": errores,
+    }
+
+
+def _parse_calidad(stdout: str) -> dict | None:
+    """Métricas 0.3: registros transaccionales evaluados."""
+    total = _parse_total(stdout)
+
+    if total is None:
+        return None
+
+    procesados, validos, review, errores = total
+
+    return {
+        "procesados": procesados,
+        "validos": validos,
+        "review": review,
+        "errores": errores,
+    }
 
 
 def run(output, stages=None, psql_fn=None) -> dict:
@@ -105,6 +140,8 @@ def run(output, stages=None, psql_fn=None) -> dict:
         "review": 0,
         "errores": 0,
         "controles_error": 0,
+        "normalizacion": None,
+        "calidad": None,
         "etapas": [],
     }
 
@@ -124,21 +161,89 @@ def run(output, stages=None, psql_fn=None) -> dict:
             rc, out, err = psql_fn(conninfo, password, path)
             dur_ms = int((monotonic() - t0) * 1000)
 
-            if nombre == "normalizacion":
-                metricas = _parse_metricas(out)
-                if metricas:
-                    report.update(metricas)
-
             if rc != 0:
-                report["etapas"].append({"nombre": nombre, "resultado": "ERROR", "duracion_ms": dur_ms})
-                # Error de psql = error de SQL (seguro, sin credenciales); se recorta.
-                report["error"] = f"Etapa '{nombre}' (exit {rc}): {(err.strip() or out.strip())[:800]}"
-                if nombre == "validaciones_calidad":
-                    report["controles_error"] = 1
+                report["etapas"].append(
+                    {
+                        "nombre": nombre,
+                        "resultado": "ERROR",
+                        "duracion_ms": dur_ms,
+                    }
+                )
+                # Error técnico de psql/SQL. Se recorta y no se incluyen credenciales.
+                report["error"] = (
+                    f"Etapa '{nombre}' (exit {rc}): "
+                    f"{(err.strip() or out.strip())[:800]}"
+                )
                 failed = True
                 break
 
-            report["etapas"].append({"nombre": nombre, "resultado": "OK", "duracion_ms": dur_ms})
+            if nombre == "normalizacion":
+                metricas = _parse_normalizacion(out)
+
+                if metricas is None:
+                    report["etapas"].append(
+                        {
+                            "nombre": nombre,
+                            "resultado": "ERROR",
+                            "duracion_ms": dur_ms,
+                        }
+                    )
+                    report["error"] = (
+                        "No fue posible interpretar las métricas "
+                        "de normalización 0.4."
+                    )
+                    failed = True
+                    break
+
+                report["normalizacion"] = metricas
+
+            elif nombre == "validaciones_calidad":
+                metricas = _parse_calidad(out)
+
+                if metricas is None:
+                    report["etapas"].append(
+                        {
+                            "nombre": nombre,
+                            "resultado": "ERROR",
+                            "duracion_ms": dur_ms,
+                        }
+                    )
+                    report["error"] = (
+                        "No fue posible interpretar las métricas "
+                        "de calidad 0.3."
+                    )
+                    failed = True
+                    break
+
+                report["calidad"] = metricas
+
+                # Las métricas superiores representan calidad transaccional,
+                # no cantidad de campos normalizados.
+                report.update(metricas)
+
+                if metricas["errores"] > 0:
+                    report["controles_error"] = 1
+                    report["etapas"].append(
+                        {
+                            "nombre": nombre,
+                            "resultado": "ERROR",
+                            "duracion_ms": dur_ms,
+                        }
+                    )
+                    report["error"] = (
+                        "Se detectaron registros con errores "
+                        "en los controles de calidad de Compras."
+                    )
+                    failed = True
+                    break
+
+            report["etapas"].append(
+                {
+                    "nombre": nombre,
+                    "resultado": "OK",
+                    "duracion_ms": dur_ms,
+                }
+            )
 
         if not failed:
             report["status"] = "OK"
