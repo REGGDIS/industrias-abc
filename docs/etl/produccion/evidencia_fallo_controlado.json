@@ -1,0 +1,51 @@
+{
+  "run_id": "ba26fe80-dd09-459c-a287-950bb1b09f9a",
+  "proceso": "produccion_etl",
+  "started_at": "2026-09-09T13:14:30.637699+00:00",
+  "finished_at": "2026-09-09T13:14:30.703925+00:00",
+  "duration_seconds": 0.0662565000820905,
+  "duracion_ms": 66,
+  "status": "ERROR",
+  "stage": "validacion",
+  "error": "Se detectaron registros con errores en los controles de calidad de Producción.",
+  "procesados": 6,
+  "validos": 5,
+  "review": 0,
+  "errores": 1,
+  "warnings": 0,
+  "duplicados_exactos": 0,
+  "duplicados_clave": 0,
+  "controles_error": 1,
+  "hallazgos": [
+    {
+      "fila": 2,
+      "business_key": [
+        "OP-2026-0001",
+        1001,
+        "2026-08-01"
+      ],
+      "regla": "VALIDACION_CSV",
+      "severidad": "ERROR",
+      "detalle": "cantidad_consumida mayor que cantidad_planificada"
+    }
+  ],
+  "etapas": [
+    {
+      "stage": "lectura_csv",
+      "status": "OK",
+      "duration_ms": 1,
+      "filas": 6
+    },
+    {
+      "stage": "lectura_mysql",
+      "status": "OK",
+      "duration_ms": 65,
+      "filas": 17
+    },
+    {
+      "stage": "validacion",
+      "status": "ERROR",
+      "duration_ms": 0
+    }
+  ]
+}

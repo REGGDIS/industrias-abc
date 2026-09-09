@@ -154,6 +154,11 @@ def profile_quality(
             reconciliation_results,
             start=2,
         ):
+            # Si la fila ya tiene un ERROR de calidad,
+            # ese estado tiene prioridad sobre cualquier WARNING.
+            if row_number in rows_with_error:
+                continue
+
             if result.status == "NO_MATCH":
                 finding = QualityFinding(
                     row_number=row_number,
@@ -166,11 +171,24 @@ def profile_quality(
                 findings.append(finding)
                 rows_with_warning.add(row_number)
 
-    valid_rows = (
-        len(rows)
-        - len(rows_with_error)
-        - len(rows_with_warning)
-    )
+            elif result.status == "REVIEW":
+                finding = QualityFinding(
+                    row_number=row_number,
+                    business_key=build_business_key(result.csv_row),
+                    rule="RECONCILIACION_REVIEW",
+                    severity=WARNING,
+                    detail=result.detail,
+                )
+
+                findings.append(finding)
+                rows_with_warning.add(row_number)
+
+    # Las categorías del resumen deben ser mutuamente excluyentes.
+    rows_with_warning.difference_update(rows_with_error)
+
+    rows_invalid_or_review = rows_with_error | rows_with_warning
+
+    valid_rows = len(rows) - len(rows_invalid_or_review)
 
     if valid_rows < 0:
         raise ValueError(

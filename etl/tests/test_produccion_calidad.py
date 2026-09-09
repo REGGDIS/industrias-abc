@@ -191,3 +191,56 @@ def test_cada_hallazgo_tiene_regla_severidad_y_detalle():
         assert finding.rule
         assert finding.severity
         assert finding.detail
+
+
+def test_review_de_reconciliacion_se_clasifica_como_warning():
+    row = make_row()
+
+    mysql_rows = [
+        make_mysql_row(
+            cantidad_consumida="7",
+        ),
+    ]
+
+    summary = profile_quality(
+        [row],
+        mysql_rows,
+    )
+
+    finding = next(
+        finding
+        for finding in summary.findings
+        if finding.rule == "RECONCILIACION_REVIEW"
+    )
+
+    assert finding.severity == WARNING
+    assert summary.rows_processed == 1
+    assert summary.rows_with_warning == 1
+    assert summary.rows_with_error == 0
+    assert summary.valid_rows == 0
+
+
+def test_error_tiene_prioridad_sobre_warning_en_resumen():
+    row = make_row(
+        cantidad_planificada="10",
+        cantidad_consumida="12",
+    )
+
+    mysql_rows: list[ConsumoMysqlProduccion] = []
+
+    summary = profile_quality(
+        [row],
+        mysql_rows,
+    )
+
+    assert summary.rows_processed == 1
+    assert summary.rows_with_error == 1
+    assert summary.rows_with_warning == 0
+    assert summary.valid_rows == 0
+
+    assert (
+        summary.valid_rows
+        + summary.rows_with_error
+        + summary.rows_with_warning
+        == summary.rows_processed
+    )
