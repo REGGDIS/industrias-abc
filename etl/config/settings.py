@@ -70,3 +70,7 @@ def get_asistencia_db_config() -> DatabaseConfig:
 
 def get_contratos_rem_db_config() -> DatabaseConfig:
     return _get_database_config("CONTRATOS_REM")
+
+
+def get_dw_db_config() -> DatabaseConfig:
+    return _get_database_config("DW")
