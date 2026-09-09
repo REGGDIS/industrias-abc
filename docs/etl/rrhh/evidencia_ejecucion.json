@@ -1,0 +1,59 @@
+{
+  "run_id": "9c5885e1-0531-40db-b073-591317bed947",
+  "proceso": "rrhh_etl",
+  "started_at": "2026-09-09T13:37:19.300258+00:00",
+  "finished_at": "2026-09-09T13:37:20.346695+00:00",
+  "duration_seconds": 1.0491602000547573,
+  "duracion_ms": 1049,
+  "status": "OK",
+  "stage": null,
+  "error": null,
+  "procesados": 80,
+  "validos": 80,
+  "errores": 0,
+  "warnings": 0,
+  "controles_error": 0,
+  "execution_id_origen": 8,
+  "entidades": {
+    "empleados": {
+      "extraidos": 80,
+      "raw": 80,
+      "clean": 80,
+      "raw_ok": true,
+      "clean_ok": true
+    },
+    "areas": {
+      "extraidos": 7,
+      "raw": 7,
+      "clean": 7,
+      "raw_ok": true,
+      "clean_ok": true
+    },
+    "cargos": {
+      "extraidos": 12,
+      "raw": 12,
+      "clean": 12,
+      "raw_ok": true,
+      "clean_ok": true
+    },
+    "centros_costo": {
+      "extraidos": 7,
+      "raw": 7,
+      "clean": 7,
+      "raw_ok": true,
+      "clean_ok": true
+    }
+  },
+  "etapas": [
+    {
+      "stage": "etl_rrhh",
+      "status": "OK",
+      "duration_ms": 1013
+    },
+    {
+      "stage": "verificacion_staging",
+      "status": "OK",
+      "duration_ms": 36
+    }
+  ]
+}

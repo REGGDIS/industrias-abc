@@ -1,0 +1,59 @@
+{
+  "run_id": "d32c4619-09fe-482f-b1fc-6852befa4e6d",
+  "proceso": "rrhh_etl",
+  "started_at": "2026-09-09T13:38:12.683169+00:00",
+  "finished_at": "2026-09-09T13:38:13.827819+00:00",
+  "duration_seconds": 1.1378516000695527,
+  "duracion_ms": 1138,
+  "status": "ERROR",
+  "stage": "verificacion_staging",
+  "error": "Los conteos RAW/CLEAN no coinciden con los registros extraidos.",
+  "procesados": 80,
+  "validos": 80,
+  "errores": 0,
+  "warnings": 0,
+  "controles_error": 1,
+  "execution_id_origen": 9,
+  "entidades": {
+    "empleados": {
+      "extraidos": 80,
+      "raw": 80,
+      "clean": 80,
+      "raw_ok": true,
+      "clean_ok": true
+    },
+    "areas": {
+      "extraidos": 7,
+      "raw": 7,
+      "clean": 6,
+      "raw_ok": true,
+      "clean_ok": false
+    },
+    "cargos": {
+      "extraidos": 12,
+      "raw": 12,
+      "clean": 12,
+      "raw_ok": true,
+      "clean_ok": true
+    },
+    "centros_costo": {
+      "extraidos": 7,
+      "raw": 7,
+      "clean": 7,
+      "raw_ok": true,
+      "clean_ok": true
+    }
+  },
+  "etapas": [
+    {
+      "stage": "etl_rrhh",
+      "status": "OK",
+      "duration_ms": 1098
+    },
+    {
+      "stage": "verificacion_staging",
+      "status": "ERROR",
+      "duration_ms": 39
+    }
+  ]
+}
