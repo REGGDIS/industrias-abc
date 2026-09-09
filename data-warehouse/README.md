@@ -22,7 +22,7 @@ Todos los objetos dimensionales y de hechos del Data Warehouse deben crearse den
 
 ## Estado actual
 
-Actualmente se encuentran implementados y validados el DW-CORE físico y el dominio analítico RRHH en su estado físico actual.
+Actualmente se encuentran implementados y validados el DW-CORE físico, el dominio analítico RRHH y el modelo físico del dominio analítico Compras en su estado actual.
 
 El CORE contiene las dimensiones comunes reutilizadas por distintos dominios y tablas de hechos del Data Warehouse.
 
@@ -35,11 +35,14 @@ Dimensiones implementadas:
 - `dw.dim_empleado`
 - `dw.dim_turno`
 - `dw.dim_contrato`
+- `dw.dim_proveedor`
+- `dw.dim_insumo`
 
 Tablas de hechos implementadas:
 
 - `dw.fact_asistencia`
 - `dw.fact_remuneraciones`
+- `dw.fact_compras`
 
 ### FACT_ASISTENCIA
 
@@ -154,6 +157,120 @@ Estas tres medidas se obtendrán durante la carga ETL agregando `DetalleLiquidac
 
 No se introducen reglas contables o remuneracionales no soportadas por la fuente. Por ejemplo, el modelo físico no fuerza relaciones matemáticas entre sueldo imponible, sueldo líquido, haberes, descuentos y costo empresa cuando la fuente no garantiza dichas relaciones como invariantes.
 
+### DIM_PROVEEDOR
+
+`dw.dim_proveedor` forma parte del dominio analítico Compras y representa los proveedores empresariales provenientes del Sistema Operacional de Compras.
+
+**Business key:**
+
+```text
+rut_proveedor_normalizado
+```
+
+El RUT se normaliza y valida (dígito verificador) durante la carga ETL. No se utilizan `razon_social` ni identificadores locales de la fuente (`proveedor_id`) como claves transversales del Data Warehouse.
+
+`DIM_PROVEEDOR` utiliza tratamiento SCD Tipo 1: los cambios descriptivos válidos reemplazan el valor anterior sin generar versiones históricas.
+
+Atributos principales:
+
+- `rut_proveedor_normalizado`
+- `razon_social`
+- `nombre_fantasia`
+- `categoria`
+- `region`
+- `comuna`
+- `estado`
+- `codigo_proveedor_ref`
+
+`codigo_proveedor_ref` es una referencia opcional al Universo Master y no reemplaza al RUT como business key.
+
+### DIM_INSUMO
+
+`dw.dim_insumo` forma parte del dominio analítico Compras y representa los insumos empresariales homologados provenientes del Sistema Operacional de Compras.
+
+**Business key:**
+
+```text
+codigo_insumo
+```
+
+`DIM_INSUMO` utiliza tratamiento SCD Tipo 1. La categoría se conserva desnormalizada dentro de la propia dimensión (`codigo_categoria` y `nombre_categoria`); no se crea `DIM_CATEGORIA_INSUMO`.
+
+Atributos principales:
+
+- `codigo_insumo`
+- `nombre_insumo`
+- `codigo_categoria`
+- `nombre_categoria`
+- `unidad_medida`
+- `stock_minimo`
+- `estado`
+
+Un cambio de `unidad_medida` para una misma business key **no** se aplica como SCD Tipo 1 silencioso, porque altera el significado histórico de las cantidades. Ese caso debe derivarse a REVIEW durante la carga ETL (Bloque 6). El modelo físico documenta esta regla; no la fuerza mediante restricción.
+
+### FACT_COMPRAS
+
+`dw.fact_compras` representa las órdenes de compra a nivel de detalle del dominio analítico Compras.
+
+**Grano:**
+
+```text
+1 fila por línea de detalle de una orden de compra (un insumo dentro de una OC)
+```
+
+**Fuente principal:** Sistema Operacional de Compras (PostgreSQL).
+
+La granularidad queda protegida mediante:
+
+```text
+UNIQUE (numero_oc, insumo_key)
+```
+
+La tabla se relaciona con:
+
+- `dw.dim_fecha` (role-playing: fecha de emisión y fecha requerida)
+- `dw.dim_proveedor`
+- `dw.dim_insumo`
+- `dw.dim_centro_costo`
+- `dw.dim_area`
+
+`numero_oc` se conserva como dimensión degenerada (identificador empresarial de la orden de compra). `codigo_comprador` se conserva como atributo local descriptivo y no se homologa a empleado sin una business key común.
+
+Medidas de la línea:
+
+- `cantidad`
+- `precio_unitario`
+- `descuento`
+- `subtotal`
+- `impuesto`
+- `total`
+- `cantidad_recibida`
+- `cantidad_rechazada`
+- `cantidad_lineas`
+
+#### Prorrateo de impuesto y total
+
+`impuesto` y `total` existen en la **cabecera** de la orden de compra, no en la línea. El modelo físico define las columnas a nivel de línea, pero **no** calcula el prorrateo: ese cálculo corresponde a la carga ETL (Bloque 6), aplicando:
+
+```text
+impuesto_linea = impuesto_oc * subtotal_linea / subtotal_oc
+total_linea    = subtotal_linea + impuesto_linea
+```
+
+La carga ETL deberá garantizar, por orden de compra:
+
+```text
+SUM(subtotal_linea) = subtotal_oc
+SUM(impuesto_linea) = impuesto_oc
+SUM(total_linea)    = total_oc
+```
+
+El residuo por redondeo debe asignarse de forma determinística a una línea, para preservar la cuadratura contra la cabecera.
+
+#### Moneda de origen
+
+`moneda_origen` preserva la moneda real de la OC (`CLP`, `USD` o `EUR`). No se suman montos de monedas distintas sin una conversión aprobada. La conversión a moneda de reporte, si se requiere, corresponde a la carga ETL o a la capa de consumo, no al modelo físico.
+
 ## Estructura principal
 
 ```text
@@ -171,16 +288,21 @@ data-warehouse/
 │   │   ├── 050_crear_dim_cargo.sql
 │   │   ├── 060_crear_dim_empleado.sql
 │   │   ├── 070_crear_dim_turno.sql
-│   │   └── 120_crear_dim_contrato.sql
+│   │   ├── 120_crear_dim_contrato.sql
+│   │   ├── 160_crear_dim_proveedor.sql
+│   │   └── 170_crear_dim_insumo.sql
 │   ├── 30_indexes/
 │   │   ├── 080_crear_indices_dimensiones.sql
 │   │   ├── 110_crear_indices_fact_asistencia.sql
 │   │   ├── 130_crear_indices_dim_contrato.sql
-│   │   └── 150_crear_indices_fact_remuneraciones.sql
+│   │   ├── 150_crear_indices_fact_remuneraciones.sql
+│   │   └── 190_crear_indices_compras.sql
 │   ├── 40_facts/
 │   │   ├── 100_crear_fact_asistencia.sql
-│   │   └── 140_crear_fact_remuneraciones.sql
+│   │   ├── 140_crear_fact_remuneraciones.sql
+│   │   └── 180_crear_fact_compras.sql
 │   └── 99_install/
+│       ├── 996_instalar_dw_compras.sql
 │       ├── 997_instalar_dw_rrhh_contratos_remuneraciones.sql
 │       ├── 998_instalar_dw_rrhh_asistencia.sql
 │       └── 999_instalar_dw_core.sql
@@ -196,12 +318,16 @@ data-warehouse/
         ├── test_060_dim_contrato.sql
         ├── test_070_reglas_dim_contrato.sql
         ├── test_080_fact_remuneraciones.sql
-        └── test_090_reglas_fact_remuneraciones.sql
+        ├── test_090_reglas_fact_remuneraciones.sql
+        ├── test_100_dim_proveedor_insumo.sql
+        └── test_110_fact_compras.sql
 ```
 
 La carpeta `10_technical` queda reservada para futuras estructuras técnicas del Data Warehouse.
 
 Las tablas de auditoría ETL, revisión, watermark y homologaciones específicas no forman parte del DDL inicial del CORE y serán tratadas en la etapa de integración y carga ETL.
+
+> **Nota de numeración (coordinación):** el dominio Compras utiliza el rango de numeración `160`–`190` y `996`. Otros dominios pendientes del Bloque 5 (Producción, Contabilidad) deben elegir rangos posteriores para evitar colisiones. Antes del PR final, re-sincronizar `develop` (`git merge origin/develop`) y verificar que ningún archivo comparta número.
 
 ## Convenciones de modelado
 
@@ -221,6 +347,8 @@ area_key
 cargo_key
 centro_costo_key
 contrato_key
+proveedor_key
+insumo_key
 ```
 
 Las claves operacionales locales de las fuentes no deben utilizarse como claves transversales del Data Warehouse.
@@ -238,9 +366,11 @@ codigo_cargo
 rut_normalizado
 turno_bk
 numero_contrato
+rut_proveedor_normalizado
+codigo_insumo
 ```
 
-En `DIM_CONTRATO`, la business key es `numero_contrato`.
+En `DIM_CONTRATO`, la business key es `numero_contrato`. En `DIM_PROVEEDOR`, la business key es `rut_proveedor_normalizado`. En `DIM_INSUMO`, la business key es `codigo_insumo`.
 
 ### Miembro desconocido
 
@@ -271,6 +401,13 @@ contrato_key = 0
 numero_contrato = DESCONOCIDO
 ```
 
+`DIM_PROVEEDOR` y `DIM_INSUMO` implementan su miembro desconocido con:
+
+```text
+proveedor_key = 0    rut_proveedor_normalizado = DESCONOCIDO
+insumo_key    = 0    codigo_insumo             = DESCONOCIDO
+```
+
 ## Tratamiento histórico
 
 ### SCD Tipo 1
@@ -282,10 +419,14 @@ Las siguientes dimensiones se manejan como Slowly Changing Dimension Tipo 1:
 - `dim_cargo`
 - `dim_turno`
 - `dim_contrato`
+- `dim_proveedor`
+- `dim_insumo`
 
 Los cambios válidos reemplazan el valor anterior sin generar una nueva versión histórica.
 
 Para `DIM_CONTRATO`, este tratamiento se adopta debido a que la fuente operacional actual no entrega un historial estructural suficiente para reconstruir versiones contractuales SCD2 confiables.
+
+Para `DIM_INSUMO`, aunque el tratamiento general es SCD Tipo 1, un cambio de `unidad_medida` se deriva a REVIEW en el ETL en lugar de aplicarse de forma silenciosa, porque altera el significado histórico de las cantidades.
 
 ### DIM_EMPLEADO — SCD Tipo 2
 
@@ -475,6 +616,102 @@ Todas las medidas monetarias y de horas definidas en la tabla deben ser no negat
 
 No se crea un índice independiente por `empleado_key`, ya que la restricción `UNIQUE (empleado_key, periodo)` genera un índice cuyo primer componente es `empleado_key`.
 
+## DIM_PROVEEDOR — reglas físicas
+
+`dw.dim_proveedor` utiliza una clave subrogada:
+
+```text
+proveedor_key
+```
+
+y una business key empresarial:
+
+```text
+rut_proveedor_normalizado
+```
+
+La business key queda protegida por una restricción `UNIQUE`.
+
+Reglas físicas principales:
+
+- `proveedor_key >= 0`;
+- miembro desconocido coherente con `proveedor_key = 0` y `rut_proveedor_normalizado = 'DESCONOCIDO'`;
+- un registro real (`proveedor_key > 0`) no puede usar el RUT `'DESCONOCIDO'`.
+
+La dimensión no crea índices adicionales: la business key ya queda indexada por su restricción `UNIQUE`.
+
+## DIM_INSUMO — reglas físicas
+
+`dw.dim_insumo` utiliza una clave subrogada:
+
+```text
+insumo_key
+```
+
+y una business key empresarial:
+
+```text
+codigo_insumo
+```
+
+La business key queda protegida por una restricción `UNIQUE`.
+
+Reglas físicas principales:
+
+- `insumo_key >= 0`;
+- miembro desconocido coherente con `insumo_key = 0` y `codigo_insumo = 'DESCONOCIDO'`;
+- un registro real (`insumo_key > 0`) no puede usar el código `'DESCONOCIDO'`;
+- `stock_minimo` nulo o no negativo;
+- categoría desnormalizada dentro de la dimensión (`codigo_categoria`, `nombre_categoria`), sin `DIM_CATEGORIA_INSUMO`.
+
+La dimensión no crea índices adicionales: la business key ya queda indexada por su restricción `UNIQUE`.
+
+## FACT_COMPRAS — reglas físicas
+
+`dw.fact_compras` utiliza una clave técnica:
+
+```text
+compra_fact_key
+```
+
+Su grano se protege mediante:
+
+```text
+UNIQUE (numero_oc, insumo_key)
+```
+
+Relaciones dimensionales:
+
+```text
+fecha_emision_key   -> dw.dim_fecha
+fecha_requerida_key -> dw.dim_fecha
+proveedor_key       -> dw.dim_proveedor
+insumo_key          -> dw.dim_insumo
+centro_costo_key    -> dw.dim_centro_costo
+area_key            -> dw.dim_area
+```
+
+`dim_fecha` se utiliza como dimensión role-playing (emisión y requerida). Cuando la fecha requerida no esté informada, se utiliza `0` (miembro desconocido).
+
+Reglas físicas principales:
+
+- `moneda_origen` admitida: `CLP`, `USD`, `EUR`;
+- `estado_oc` nulo o dentro del dominio `EMITIDA`, `PARCIAL`, `RECIBIDA`, `CERRADA`, `ANULADA`;
+- todas las medidas de cantidad y monto no negativas;
+- `cantidad_lineas` siempre igual a `1`;
+- `numero_oc` como dimensión degenerada obligatoria.
+
+`impuesto` y `total` se prorratean al grano de línea durante la carga ETL (Bloque 6); el DDL define las columnas pero no calcula el prorrateo.
+
+Índices complementarios (una `FOREIGN KEY` no genera índice automático en PostgreSQL):
+
+- fecha de emisión;
+- fecha requerida;
+- proveedor;
+- insumo;
+- centro de costo;
+- área.
+
 ## Instalación del DW-CORE
 
 El instalador principal es:
@@ -594,6 +831,55 @@ Resultado:
 DW-RRHH 0.3 instalado correctamente.
 ```
 
+### Instalación del paquete DW-COMPRAS
+
+El instalador específico es:
+
+```text
+data-warehouse/sql/99_install/996_instalar_dw_compras.sql
+```
+
+Debe ejecutarse después del DW-CORE, ya que `FACT_COMPRAS` depende de las dimensiones conformadas comunes (`dim_fecha`, `dim_area`, `dim_centro_costo`).
+
+Ejemplo:
+
+```bash
+psql -U dw_user -d industrias_abc_dw \
+  -f data-warehouse/sql/99_install/996_instalar_dw_compras.sql
+```
+
+El instalador ejecuta, dentro de una transacción:
+
+1. `160_crear_dim_proveedor.sql`
+2. `170_crear_dim_insumo.sql`
+3. `180_crear_fact_compras.sql`
+4. `190_crear_indices_compras.sql`
+
+El script utiliza:
+
+```text
+\set ON_ERROR_STOP on
+BEGIN
+...
+COMMIT
+```
+
+por lo que un error durante la instalación impide dejar el paquete parcialmente aplicado.
+
+El paquete depende previamente de las dimensiones del DW-CORE:
+
+- `dw.dim_fecha`
+- `dw.dim_area`
+- `dw.dim_centro_costo`
+
+La instalación reproducible de DW-COMPRAS fue validada sobre PostgreSQL 16 sobre una base limpia `industrias_abc_dw`: instalación del CORE, ejecución del instalador `996`, ejecución de los tests estructurales `test_100` y `test_110`, y re-ejecución idempotente del instalador. El paquete utiliza `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS` e inserts de miembro desconocido con `ON CONFLICT DO NOTHING`, por lo que puede re-ejecutarse sin error.
+
+Resultado:
+
+```text
+DW-COMPRAS instalado correctamente.
+```
+
 ## Validación estructural y funcional
 
 Los tests se encuentran en:
@@ -618,7 +904,9 @@ Actualmente se validan:
 - reglas funcionales de `DIM_CONTRATO`;
 - estructura física de `FACT_REMUNERACIONES`;
 - reglas funcionales de `FACT_REMUNERACIONES`;
-- ejecución de pruebas funcionales con `ROLLBACK` para evitar contaminación del DW.
+- estructura y reglas de `DIM_PROVEEDOR` y `DIM_INSUMO`;
+- estructura y reglas de `FACT_COMPRAS`;
+- ejecución de pruebas funcionales con `ROLLBACK` o limpieza posterior para evitar contaminación del DW.
 
 Tests disponibles:
 
@@ -632,6 +920,8 @@ test_060_dim_contrato.sql
 test_070_reglas_dim_contrato.sql
 test_080_fact_remuneraciones.sql
 test_090_reglas_fact_remuneraciones.sql
+test_100_dim_proveedor_insumo.sql
+test_110_fact_compras.sql
 ```
 
 ### Test estructural de FACT_ASISTENCIA
@@ -805,6 +1095,57 @@ TEST OK: reglas funcionales de FACT_REMUNERACIONES verificadas.
 
 Después de la ejecución se comprobó explícitamente que no quedaran fixtures en el rango de claves de prueba de `FACT_REMUNERACIONES`.
 
+### Test estructural de DIM_PROVEEDOR y DIM_INSUMO
+
+Archivo:
+
+```text
+data-warehouse/tests/structural/test_100_dim_proveedor_insumo.sql
+```
+
+El test verifica:
+
+- existencia de `dw.dim_proveedor` y `dw.dim_insumo`;
+- las restricciones esperadas por nombre (PK, UNIQUE de business key, CHECK de clave, miembro desconocido y `stock_minimo`);
+- existencia y coherencia del miembro desconocido en ambas dimensiones;
+- que un registro real de `DIM_PROVEEDOR` no acepte RUT `'DESCONOCIDO'`;
+- que `DIM_INSUMO` rechace `stock_minimo` negativo.
+
+Los casos funcionales se ejecutan dentro de bloques `DO` con sub-transacciones que revierten los inserts de prueba, sin dejar residuos.
+
+Resultado validado sobre PostgreSQL 16:
+
+```text
+== TEST 100: TODOS LOS CHEQUEOS OK ==
+```
+
+### Test estructural de FACT_COMPRAS
+
+Archivo:
+
+```text
+data-warehouse/tests/structural/test_110_fact_compras.sql
+```
+
+El test verifica:
+
+- existencia de `dw.fact_compras`;
+- conteo de restricciones (`PK=1`, `UNIQUE=1`, `FK=6`, `CHECK>=11`);
+- las seis claves foráneas por nombre;
+- los seis índices de FK por nombre;
+- que una fila válida referenciando los miembros desconocidos (`key=0`) sea aceptada;
+- que una FK a proveedor inexistente sea rechazada;
+- que una moneda fuera del dominio sea rechazada;
+- que un grano duplicado (`numero_oc`, `insumo_key`) sea rechazado.
+
+Los inserts de prueba se limpian dentro del propio test, sin dejar datos de negocio.
+
+Resultado validado sobre PostgreSQL 16:
+
+```text
+== TEST 110: TODOS LOS CHEQUEOS OK ==
+```
+
 ## Convenciones de restricciones e índices
 
 Se utilizan los siguientes prefijos:
@@ -829,6 +1170,12 @@ pk_dim_contrato
 uq_dim_contrato_numero
 pk_fact_remuneraciones
 uq_fact_remuneraciones_empleado_periodo
+pk_dim_proveedor
+uq_dim_proveedor_rut
+pk_dim_insumo
+uq_dim_insumo_codigo
+pk_fact_compras
+uq_fact_compras_oc_insumo
 ```
 
 ## Separación entre DW y ETL
@@ -891,6 +1238,20 @@ La carga ETL futura deberá resolver `empleado_key` usando RUT normalizado y la 
 
 Las claves organizacionales `area_key`, `cargo_key` y `centro_costo_key` deberán ser coherentes con la versión histórica del empleado utilizada para el hecho.
 
+### Compras
+
+Para el Sistema Operacional de Compras:
+
+- `proveedor_id`, `insumo_id` y `oc_id` son identificadores locales de la fuente y no se utilizan como claves transversales del Data Warehouse;
+- `rut_proveedor_normalizado` es la business key utilizada por `DIM_PROVEEDOR`; el RUT se normaliza y valida (dígito verificador) durante la carga ETL;
+- `codigo_insumo` es la business key utilizada por `DIM_INSUMO`;
+- la categoría de insumo se conserva desnormalizada dentro de `DIM_INSUMO`; no se crea `DIM_CATEGORIA_INSUMO`;
+- `numero_oc` se conserva como dimensión degenerada en `FACT_COMPRAS`;
+- `codigo_comprador` se conserva como atributo local descriptivo; no se homologa a empleado sin una business key común;
+- `impuesto` y `total` provienen de la cabecera de la OC y deben prorratearse al grano de línea durante la carga ETL;
+- `moneda_origen` preserva la moneda real de la OC; no se suman montos de monedas distintas sin conversión aprobada;
+- el grano de `FACT_COMPRAS` se protege mediante `UNIQUE (numero_oc, insumo_key)`.
+
 ## Estado actual del Data Warehouse
 
 ### Implementado y validado
@@ -903,17 +1264,22 @@ Las claves organizacionales `area_key`, `cargo_key` y `centro_costo_key` deberá
 - `DIM_EMPLEADO`
 - `DIM_TURNO`
 - `DIM_CONTRATO`
+- `DIM_PROVEEDOR`
+- `DIM_INSUMO`
 - `FACT_ASISTENCIA`
 - `FACT_REMUNERACIONES`
+- `FACT_COMPRAS`
 - integridad histórica SCD2 de RRHH
 - resolución temporal `RUT + fecha`
 - compatibilidad histórica entre `DIM_EMPLEADO` y `FACT_ASISTENCIA`
 - business key contractual `numero_contrato`
 - grano mensual `empleado + período` de remuneraciones
-- índices CORE, Asistencia, Contratos y Remuneraciones
+- business key de proveedor `rut_proveedor_normalizado` e insumo `codigo_insumo`
+- grano de línea de compra `numero_oc + insumo_key`
+- índices CORE, Asistencia, Contratos, Remuneraciones y Compras
 - instaladores reproducibles
-- tests estructurales y funcionales de RRHH
-- validación reproducible de DW-RRHH 0.3 sobre PostgreSQL 16
+- tests estructurales y funcionales de RRHH y Compras
+- validación reproducible de DW-RRHH 0.3 y DW-COMPRAS sobre PostgreSQL 16
 
 ### Estado del dominio analítico RRHH
 
@@ -934,18 +1300,31 @@ DW-RRHH
 
 La disponibilidad física de estos objetos no implica que la carga ETL hacia el DW esté terminada. Esa integración corresponde al Bloque 6.
 
+### Estado del dominio analítico Compras
+
+El modelo físico del dominio analítico Compras se considera completo en el alcance actual del Bloque 5:
+
+```text
+DW-COMPRAS
+├── DIM_FECHA          (consumida del CORE, role-playing)
+├── DIM_AREA           (consumida del CORE)
+├── DIM_CENTRO_COSTO   (consumida del CORE)
+├── DIM_PROVEEDOR
+├── DIM_INSUMO
+└── FACT_COMPRAS
+```
+
+El dominio Compras reutiliza las dimensiones conformadas del CORE (`DIM_FECHA`, `DIM_AREA`, `DIM_CENTRO_COSTO`) sin recrearlas. La disponibilidad física de estos objetos no implica que la carga ETL hacia el DW esté terminada. Esa integración, incluyendo el cálculo del prorrateo de impuesto y la resolución de lookups dimensionales, corresponde al Bloque 6.
+
 ### Pendiente dentro del Bloque 5
 
-- `DIM_PROVEEDOR`
-- `DIM_INSUMO`
 - `DIM_PRODUCTO`
 - `DIM_CUENTA_CONTABLE`
-- `FACT_COMPRAS`
 - `FACT_CONTABILIDAD`
 - `FACT_PRODUCCION`
 - `FACT_CONSUMO_INSUMO`
 
-`DIM_CONTRATO` y `FACT_REMUNERACIONES` ya no forman parte de los pendientes del Bloque 5.
+`DIM_CONTRATO` y `FACT_REMUNERACIONES` (RRHH) y `DIM_PROVEEDOR`, `DIM_INSUMO` y `FACT_COMPRAS` (Compras) ya no forman parte de los pendientes del Bloque 5.
 
 ## Próximas etapas
 
@@ -973,6 +1352,18 @@ Para RRHH, esta etapa deberá incluir al menos:
 - idempotencia;
 - reconciliaciones fuente → staging → DW;
 - validación integral del dominio RRHH.
+
+Para Compras, esta etapa deberá incluir al menos:
+
+- carga SCD Tipo 1 de `DIM_PROVEEDOR` con normalización y validación de RUT;
+- carga SCD Tipo 1 de `DIM_INSUMO`, derivando a REVIEW los cambios de `unidad_medida`;
+- resolución de `proveedor_key` mediante RUT normalizado y de `insumo_key` mediante `codigo_insumo`;
+- resolución de `centro_costo_key` y `area_key` mediante códigos empresariales;
+- cálculo del prorrateo de impuesto y total al grano de línea, con residuo determinístico y cuadratura contra la cabecera de la OC;
+- preservación de `moneda_origen` y, si corresponde, conversión a moneda de reporte;
+- tratamiento de miembros desconocidos;
+- eventos REVIEW para casos no resolubles de forma determinística;
+- carga de `FACT_COMPRAS` respetando el grano `numero_oc + insumo_key`.
 
 A nivel global del proyecto se implementarán además:
 
