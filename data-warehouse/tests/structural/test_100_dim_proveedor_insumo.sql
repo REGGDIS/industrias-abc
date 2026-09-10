@@ -108,11 +108,23 @@ END $$;
 DO $$
 BEGIN
     BEGIN
-        INSERT INTO dw.dim_insumo (codigo_insumo, nombre_insumo, stock_minimo)
-        VALUES ('TEST-NEG', 'Insumo prueba', -5);
+        INSERT INTO dw.dim_insumo (codigo_insumo, nombre_insumo, unidad_medida, stock_minimo)
+        VALUES ('TEST-NEG', 'Insumo prueba', 'UNIDAD', -5);
         RAISE EXCEPTION 'FALLO: DIM_INSUMO aceptó stock_minimo negativo';
     EXCEPTION WHEN check_violation THEN
         RAISE NOTICE 'OK: DIM_INSUMO rechaza stock_minimo negativo';
+    END;
+END $$;
+
+-- 4c) DIM_INSUMO: unidad_medida es obligatoria para un insumo real
+DO $$
+BEGIN
+    BEGIN
+        INSERT INTO dw.dim_insumo (codigo_insumo, nombre_insumo, unidad_medida)
+        VALUES ('TEST-SIN-UM', 'Insumo sin unidad', NULL);
+        RAISE EXCEPTION 'FALLO: DIM_INSUMO aceptó unidad_medida NULL';
+    EXCEPTION WHEN not_null_violation THEN
+        RAISE NOTICE 'OK: DIM_INSUMO rechaza unidad_medida NULL';
     END;
 END $$;
 
