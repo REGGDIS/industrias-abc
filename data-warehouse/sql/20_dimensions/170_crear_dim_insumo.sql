@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS dw.dim_insumo (
     nombre_insumo VARCHAR(120) NOT NULL,
     codigo_categoria VARCHAR(15),
     nombre_categoria VARCHAR(80),
-    unidad_medida VARCHAR(30),
+    unidad_medida VARCHAR(30) NOT NULL,
     stock_minimo NUMERIC(12,2),
     estado VARCHAR(15),
 
@@ -81,7 +81,7 @@ COMMENT ON COLUMN dw.dim_insumo.nombre_categoria IS
 'Nombre de categoría aplanado dentro de la dimensión.';
 
 COMMENT ON COLUMN dw.dim_insumo.unidad_medida IS
-'Unidad semántica de las cantidades. Un cambio de este valor pasa a REVIEW en el ETL, no se aplica como SCD1 silencioso.';
+'Unidad semántica obligatoria de las cantidades. Un cambio de este valor pasa a REVIEW en el ETL, no se aplica como SCD1 silencioso.';
 
 COMMENT ON COLUMN dw.dim_insumo.stock_minimo IS
 'Stock mínimo vigente de referencia.';
