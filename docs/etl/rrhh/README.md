@@ -118,6 +118,18 @@ Cada ejecución del ETL RRHH genera un registro en:
 etl_execution_log
 ```
 
+La tabla de auditoría es gestionada mediante el componente transversal:
+
+```text
+etl/audit/
+```
+
+Su definición SQL versionada se encuentra en:
+
+```text
+etl/sql/audit/001_create_etl_execution_log.sql
+```
+
 La auditoría registra:
 
 - identificador de ejecución;
@@ -127,9 +139,62 @@ La auditoría registra:
 - fecha de término;
 - registros leídos;
 - registros válidos;
+- registros insertados;
+- registros actualizados;
+- registros sin cambios;
 - registros rechazados;
+- registros enviados a revisión;
 - estado;
 - mensaje de ejecución.
+
+Los estados permitidos son:
+
+- `RUNNING`
+- `SUCCESS`
+- `ERROR`
+- `PARTIAL`
+
+La instalación o actualización de la tabla es idempotente y conserva
+los registros históricos existentes.
+
+El archivo histórico:
+
+```text
+etl/sql/staging/rrhh/create_etl_audit.sql
+```
+
+se mantiene por compatibilidad, pero la definición transversal vigente
+se encuentra en:
+
+```text
+etl/sql/audit/001_create_etl_execution_log.sql
+```
+
+## Preparación de la auditoría
+
+Antes de ejecutar el ETL RRHH por primera vez en una base nueva, se debe
+instalar la infraestructura de auditoría.
+
+Desde la raíz del repositorio:
+
+```powershell
+python -c "from etl.audit.setup import install_audit_tables; from etl.config.settings import get_rrhh_db_config; install_audit_tables(get_rrhh_db_config()); print('AUDIT SETUP OK')"
+```
+
+El instalador:
+
+```text
+etl/audit/setup.py
+```
+
+lee y ejecuta:
+
+```text
+etl/sql/audit/001_create_etl_execution_log.sql
+```
+
+La operación puede ejecutarse nuevamente sin duplicar columnas,
+restricciones ni registros de auditoría.
 
 ## Ejecución
 
@@ -137,8 +202,23 @@ Desde la raíz del repositorio:
 
 ```powershell
 python -m pip install -r .\etl\requirements.txt
+```
+
+Preparar la tabla de auditoría, si corresponde:
+
+```powershell
+python -c "from etl.audit.setup import install_audit_tables; from etl.config.settings import get_rrhh_db_config; install_audit_tables(get_rrhh_db_config())"
+```
+
+Luego ejecutar el ETL RRHH:
+
+```powershell
 python -m etl.run_rrhh
 ```
+
+En instalaciones donde la tabla `etl_execution_log` ya fue preparada
+con la versión vigente, no es necesario repetir el paso de instalación
+antes de cada ejecución del ETL.
 
 ## Pruebas
 
