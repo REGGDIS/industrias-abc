@@ -330,3 +330,372 @@ select {
     margin-top: 14px;
   }
 }
+
+/* =========================================================
+   HITO APP 2 - COMPONENTES BI REUTILIZABLES
+   ========================================================= */
+
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.filter-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 14px;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-field > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.filter-field select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.filter-field select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(31, 78, 120, 0.08);
+}
+
+.filter-clear-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.filter-clear-button:hover {
+  border-color: #b7c5d1;
+  color: var(--primary);
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.kpi-card {
+  min-width: 0;
+  padding: 19px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 4px 18px rgba(31, 78, 120, 0.04);
+}
+
+.kpi-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.kpi-title {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.kpi-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.kpi-value {
+  margin-top: 13px;
+  color: #13273a;
+  font-size: 25px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.kpi-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  margin-top: 10px;
+}
+
+.kpi-helper {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.variation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.variation-positive {
+  color: #15803d;
+}
+
+.variation-negative {
+  color: #b42318;
+}
+
+.variation-neutral {
+  color: var(--muted);
+}
+
+.dashboard-chart-section {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.chart-card {
+  min-width: 0;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 4px 18px rgba(31, 78, 120, 0.04);
+}
+
+.chart-card-header {
+  padding: 18px 20px 13px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.chart-card-header h2 {
+  margin: 0;
+  color: #18344f;
+  font-size: 14px;
+}
+
+.chart-card-header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.chart-card-body {
+  min-width: 0;
+  padding: 18px 20px;
+}
+
+.chart-demo {
+  width: 100%;
+  min-width: 0;
+  height: 280px;
+}
+
+.alert-card {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid;
+  border-radius: 12px;
+}
+
+.alert-card > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.alert-card strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.alert-card p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.alert-info {
+  border-color: #b7d9ee;
+  background: #eff8fd;
+  color: #15597c;
+}
+
+.alert-success {
+  border-color: #b8dfc6;
+  background: #f0faf3;
+  color: #176536;
+}
+
+.alert-warning {
+  border-color: #ead7a6;
+  background: #fff9e9;
+  color: #805d11;
+}
+
+.alert-danger {
+  border-color: #e9b8b5;
+  background: #fff3f2;
+  color: #9c2f28;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.status-success {
+  background: #eaf7ee;
+  color: #16713a;
+}
+
+.status-warning {
+  background: #fff4d7;
+  color: #87610f;
+}
+
+.status-danger {
+  background: #fdeceb;
+  color: #ac332c;
+}
+
+.status-info {
+  background: #e8f3fa;
+  color: #246485;
+}
+
+.status-neutral {
+  background: #eef1f4;
+  color: #64748b;
+}
+
+.data-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.data-table th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.data-table td {
+  padding: 12px;
+  border-bottom: 1px solid #edf1f5;
+  color: var(--text);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.align-left {
+  text-align: left;
+}
+
+.align-center {
+  text-align: center;
+}
+
+.align-right {
+  text-align: right;
+}
+
+.data-table-empty {
+  padding: 28px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-grid {
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .filter-bar {
+    display: block;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-clear-button {
+    width: 100%;
+    margin-top: 14px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
