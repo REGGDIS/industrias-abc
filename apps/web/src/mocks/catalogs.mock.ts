@@ -35,3 +35,16 @@ export const centrosCostoMock: SelectOption[] = [
   { id: 4, label: 'CC-PRODUCCION' },
   { id: 5, label: 'CC-ADMIN' },
 ];
+
+export const cargosMock: SelectOption[] = [
+  { id: 1, label: 'Analista de RRHH' },
+  { id: 2, label: 'Asistente Administrativo' },
+  { id: 3, label: 'Comprador' },
+  { id: 4, label: 'Analista de Abastecimiento' },
+  { id: 5, label: 'Analista Contable' },
+  { id: 6, label: 'Contador' },
+  { id: 7, label: 'Operario de Producción' },
+  { id: 8, label: 'Supervisor de Producción' },
+  { id: 9, label: 'Administrativo' },
+  { id: 10, label: 'Jefatura' },
+];
