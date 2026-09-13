@@ -856,3 +856,68 @@ select {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   HITO APP 11 - ANALISIS INTEGRADO
+   ========================================================= */
+
+.analisis-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.analisis-production-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.analisis-production-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.analisis-production-summary span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.analisis-production-summary strong {
+  font-size: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+  .analisis-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .analisis-kpi-grid,
+  .analisis-production-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Ajuste visual gráfico Análisis Integrado */
+.chart-demo {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.analisis-cost-chart {
+  height: 380px;
+  width: 100%;
+  min-width: 0;
+}
+
+.analisis-secondary-chart {
+  height: 370px;
+  width: 100%;
+  min-width: 0;
+}
