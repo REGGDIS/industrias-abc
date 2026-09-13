@@ -16,6 +16,9 @@
 --   consumo_id de la fuente operacional se conserva para
 --   distinguir múltiples consumos del mismo insumo en una
 --   misma orden y fecha.
+--   insumo_codigo_origen conserva el código o referencia
+--   emitido por Producción, incluso cuando el mapping a
+--   DIM_INSUMO todavía no sea resoluble y se use key = 0.
 --
 -- Dimensiones:
 --   - fecha de consumo
@@ -33,6 +36,9 @@
 -- Regla:
 --   No se mezcla el consumo de insumos dentro de
 --   FACT_PRODUCCION.
+--   El sobreconsumo (cantidad_consumida > cantidad_planificada)
+--   es un hecho analítico válido y se refleja como desviación
+--   positiva; no se bloquea mediante CHECK físico.
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS dw.fact_consumo_insumo (
@@ -48,6 +54,7 @@ CREATE TABLE IF NOT EXISTS dw.fact_consumo_insumo (
     numero_orden VARCHAR(50) NOT NULL,
 
     consumo_id BIGINT NOT NULL,
+    insumo_codigo_origen VARCHAR(50) NOT NULL,
 
     cantidad_planificada NUMERIC(12,2) NOT NULL,
     cantidad_consumida NUMERIC(12,2) NOT NULL,
@@ -89,14 +96,11 @@ CREATE TABLE IF NOT EXISTS dw.fact_consumo_insumo (
         CHECK (cantidad_planificada >= 0),
 
     CONSTRAINT ck_fact_consumo_insumo_cantidad_consumida
-        CHECK (cantidad_consumida >= 0),
-
-    CONSTRAINT ck_fact_consumo_insumo_consumida_no_supera_planificada
-        CHECK (cantidad_consumida <= cantidad_planificada)
+        CHECK (cantidad_consumida >= 0)
 );
 
 COMMENT ON TABLE dw.fact_consumo_insumo IS
-'Tabla de hechos de consumo de insumos de Producción. Una fila por orden, insumo y fecha de consumo, manteniendo consumo_id como trazabilidad del origen.';
+'Tabla de hechos de consumo de insumos de Producción. Una fila por orden, insumo y fecha de consumo, manteniendo consumo_id y el código de insumo de origen para trazabilidad.';
 
 COMMENT ON COLUMN dw.fact_consumo_insumo.consumo_fact_key IS
 'Clave técnica del hecho de consumo de insumos.';
@@ -108,7 +112,7 @@ COMMENT ON COLUMN dw.fact_consumo_insumo.producto_key IS
 'Clave subrogada de DIM_PRODUCTO correspondiente al producto de la orden de producción.';
 
 COMMENT ON COLUMN dw.fact_consumo_insumo.insumo_key IS
-'Clave subrogada de DIM_INSUMO correspondiente al insumo homologado desde Producción mediante el mapping explícito vigente.';
+'Clave subrogada de DIM_INSUMO correspondiente al insumo homologado desde Producción mediante el mapping explícito vigente. Puede ser 0 cuando el mapping no sea resoluble.';
 
 COMMENT ON COLUMN dw.fact_consumo_insumo.centro_costo_key IS
 'Clave subrogada de DIM_CENTRO_COSTO obtenida mediante homologación. No corresponde al centro_costo_id local de Producción.';
@@ -122,14 +126,17 @@ COMMENT ON COLUMN dw.fact_consumo_insumo.numero_orden IS
 COMMENT ON COLUMN dw.fact_consumo_insumo.consumo_id IS
 'Identificador del consumo en el sistema operacional de Producción. Se conserva para trazabilidad y para distinguir consumos múltiples del mismo insumo en una misma fecha.';
 
+COMMENT ON COLUMN dw.fact_consumo_insumo.insumo_codigo_origen IS
+'Código o referencia de insumo emitido por Producción (por ejemplo, insumo_codigo_o_referencia del CSV complementario). Se conserva aunque el mapping a DIM_INSUMO se resuelva mediante el miembro desconocido key = 0.';
+
 COMMENT ON COLUMN dw.fact_consumo_insumo.cantidad_planificada IS
 'Cantidad de insumo planificada para el consumo.';
 
 COMMENT ON COLUMN dw.fact_consumo_insumo.cantidad_consumida IS
-'Cantidad real de insumo consumida.';
+'Cantidad real de insumo consumida. Puede superar la cantidad planificada; ese sobreconsumo es un hecho analítico válido.';
 
 COMMENT ON COLUMN dw.fact_consumo_insumo.desviacion IS
-'Diferencia entre cantidad consumida y cantidad planificada: cantidad_consumida - cantidad_planificada.';
+'Diferencia entre cantidad consumida y cantidad planificada: cantidad_consumida - cantidad_planificada. Una desviación positiva representa sobreconsumo.';
 
 COMMENT ON CONSTRAINT uq_fact_consumo_insumo_origen
     ON dw.fact_consumo_insumo IS
