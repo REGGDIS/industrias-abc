@@ -48,3 +48,20 @@ export const cargosMock: SelectOption[] = [
   { id: 9, label: 'Administrativo' },
   { id: 10, label: 'Jefatura' },
 ];
+
+export const productosMock: SelectOption[] = [
+  { id: 1, label: 'Producto Alpha' },
+  { id: 2, label: 'Producto Beta' },
+  { id: 3, label: 'Producto Gamma' },
+  { id: 4, label: 'Producto Delta' },
+  { id: 5, label: 'Producto Épsilon' },
+];
+
+export const insumosMock: SelectOption[] = [
+  { id: 1, label: 'Acero industrial' },
+  { id: 2, label: 'Componentes eléctricos' },
+  { id: 3, label: 'Rodamientos' },
+  { id: 4, label: 'Lubricante industrial' },
+  { id: 5, label: 'Piezas mecanizadas' },
+  { id: 6, label: 'Material de embalaje' },
+];
