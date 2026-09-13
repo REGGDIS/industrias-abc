@@ -1316,15 +1316,35 @@ DW-COMPRAS
 
 El dominio Compras reutiliza las dimensiones conformadas del CORE (`DIM_FECHA`, `DIM_AREA`, `DIM_CENTRO_COSTO`) sin recrearlas. La disponibilidad física de estos objetos no implica que la carga ETL hacia el DW esté terminada. Esa integración, incluyendo el cálculo del prorrateo de impuesto y la resolución de lookups dimensionales, corresponde al Bloque 6.
 
+### Estado del dominio analítico Producción
+
+El modelo físico del dominio analítico Producción se considera completo en el alcance actual del Bloque 5:
+
+```text
+DW-PRODUCCION
+├── DIM_FECHA          (consumida del CORE)
+├── DIM_AREA           (consumida del CORE)
+├── DIM_CENTRO_COSTO   (consumida del CORE)
+├── DIM_INSUMO         (consumida de DW-COMPRAS)
+├── DIM_PRODUCTO
+├── FACT_PRODUCCION
+└── FACT_CONSUMO_INSUMO
+```
+
+`DIM_PRODUCTO` utiliza `codigo_producto` como business key y tratamiento SCD Tipo 1, con `producto_key = 0` como miembro desconocido.
+
+`FACT_PRODUCCION` mantiene el grano de una fila por orden de producción, utilizando `numero_orden` como dimensión degenerada y relacionándose con las dimensiones conformadas de fecha, producto, centro de costo y área.
+
+`FACT_CONSUMO_INSUMO` mantiene un grano separado de `FACT_PRODUCCION`, correspondiente al consumo por orden, insumo y fecha, conservando `consumo_id` para trazabilidad cuando existen múltiples consumos del mismo insumo en una misma fecha.
+
+El dominio Producción reutiliza las dimensiones conformadas del CORE (`DIM_FECHA`, `DIM_AREA`, `DIM_CENTRO_COSTO`) y la `DIM_INSUMO` vigente de Compras sin recrearlas. La homologación de centros de costo e insumos debe resolverse mediante las reglas explícitas confirmadas por el ETL de Producción. La carga ETL definitiva hacia `dw.*` permanece pendiente para el Bloque 6.
+
 ### Pendiente dentro del Bloque 5
 
-- `DIM_PRODUCTO`
-- `DIM_CUENTA_CONTABLE`
-- `FACT_CONTABILIDAD`
-- `FACT_PRODUCCION`
-- `FACT_CONSUMO_INSUMO`
+* `DIM_CUENTA_CONTABLE`
+* `FACT_CONTABILIDAD`
 
-`DIM_CONTRATO` y `FACT_REMUNERACIONES` (RRHH) y `DIM_PROVEEDOR`, `DIM_INSUMO` y `FACT_COMPRAS` (Compras) ya no forman parte de los pendientes del Bloque 5.
+`DIM_CONTRATO` y `FACT_REMUNERACIONES` (RRHH), `DIM_PROVEEDOR`, `DIM_INSUMO` y `FACT_COMPRAS` (Compras), y `DIM_PRODUCTO`, `FACT_PRODUCCION` y `FACT_CONSUMO_INSUMO` (Producción) ya no forman parte de los pendientes del Bloque 5.
 
 ## Próximas etapas
 
