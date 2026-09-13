@@ -1,7 +1,7 @@
 SELECT
     ci.consumo_id,
     ci.orden_produccion_id,
-    op.numero_orden,
+    UPPER(TRIM(op.numero_orden)) AS numero_orden,
     ci.insumo_id,
     ci.cantidad_planificada,
     ci.cantidad_consumida,
@@ -13,4 +13,8 @@ WHERE ci.insumo_id IS NOT NULL
   AND ci.cantidad_planificada >= 0
   AND ci.cantidad_consumida >= 0
   AND ci.fecha_consumo IS NOT NULL
-  AND ci.cantidad_consumida <= ci.cantidad_planificada;
+  AND ci.fecha_consumo >= op.fecha_inicio
+  AND (
+      op.fecha_termino IS NULL
+      OR ci.fecha_consumo <= op.fecha_termino
+  );
