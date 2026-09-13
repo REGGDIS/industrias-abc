@@ -66,6 +66,18 @@ BEGIN
             faltantes;
     END IF;
 
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns c
+        WHERE c.table_schema = 'dw'
+          AND c.table_name = 'fact_produccion'
+          AND c.column_name = 'fecha_termino_key'
+          AND c.is_nullable <> 'NO'
+    ) THEN
+        RAISE EXCEPTION
+            'TEST FAIL: fecha_termino_key debe ser NOT NULL y usar key = 0 para órdenes abiertas';
+    END IF;
+
     -- ========================================================
     -- 3. PRIMARY KEY
     -- ========================================================
