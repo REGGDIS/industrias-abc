@@ -47,6 +47,7 @@ BEGIN
                 ('area_key'),
                 ('numero_orden'),
                 ('consumo_id'),
+                ('insumo_codigo_origen'),
                 ('cantidad_planificada'),
                 ('cantidad_consumida'),
                 ('desviacion')
@@ -154,8 +155,7 @@ BEGIN
             VALUES
                 ('ck_fact_consumo_insumo_key'),
                 ('ck_fact_consumo_insumo_cantidad_planificada'),
-                ('ck_fact_consumo_insumo_cantidad_consumida'),
-                ('ck_fact_consumo_insumo_consumida_no_supera_planificada')
+                ('ck_fact_consumo_insumo_cantidad_consumida')
         ) AS esperadas(nombre)
         WHERE NOT EXISTS (
             SELECT 1
@@ -175,6 +175,21 @@ BEGIN
         RAISE EXCEPTION
             'TEST FAIL: faltan CHECK en FACT_CONSUMO_INSUMO: %',
             faltantes;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM pg_constraint c
+        JOIN pg_class t
+          ON t.oid = c.conrelid
+        JOIN pg_namespace n
+          ON n.oid = t.relnamespace
+        WHERE n.nspname = 'dw'
+          AND t.relname = 'fact_consumo_insumo'
+          AND c.conname = 'ck_fact_consumo_insumo_consumida_no_supera_planificada'
+    ) THEN
+        RAISE EXCEPTION
+            'TEST FAIL: no debe existir CHECK que bloquee el sobreconsumo';
     END IF;
 
     -- ========================================================
