@@ -46,7 +46,7 @@ VALUES (
     500.00,
     480.00,
     20.00,
-    'PRUEBA'
+    'TERMINADA'
 );
 
 DO $$
@@ -97,7 +97,7 @@ BEGIN
             400.00,
             390.00,
             10.00,
-            'PRUEBA'
+            'TERMINADA'
         );
 
         RAISE EXCEPTION
@@ -142,7 +142,7 @@ BEGIN
             -1.00,
             10.00,
             0.00,
-            'PRUEBA'
+            'TERMINADA'
         );
 
         RAISE EXCEPTION
@@ -187,7 +187,7 @@ BEGIN
             100.00,
             -1.00,
             0.00,
-            'PRUEBA'
+            'TERMINADA'
         );
 
         RAISE EXCEPTION
@@ -232,7 +232,7 @@ BEGIN
             100.00,
             80.00,
             -1.00,
-            'PRUEBA'
+            'TERMINADA'
         );
 
         RAISE EXCEPTION
@@ -277,7 +277,7 @@ BEGIN
             100.00,
             20.00,
             25.00,
-            'PRUEBA'
+            'TERMINADA'
         );
 
         RAISE EXCEPTION
@@ -292,18 +292,55 @@ END
 $$;
 
 -- ============================================================
--- 7. FECHA DE TÉRMINO POSTERIOR NO APLICA COMO CHECK FÍSICO
+-- 7. ORDEN ABIERTA USA FECHA_TERMINO_KEY = 0
 -- ============================================================
+
+INSERT INTO dw.fact_produccion (
+    produccion_fact_key,
+    fecha_inicio_key,
+    fecha_termino_key,
+    producto_key,
+    centro_costo_key,
+    area_key,
+    numero_orden,
+    cantidad_planificada,
+    cantidad_producida,
+    cantidad_rechazada,
+    estado
+)
+VALUES (
+    920007,
+    20260801,
+    0,
+    0,
+    0,
+    0,
+    'TEST-OP-006',
+    100.00,
+    50.00,
+    0.00,
+    'EN_PROCESO'
+);
 
 DO $$
 BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM dw.fact_produccion
+        WHERE produccion_fact_key = 920007
+          AND fecha_termino_key = 0
+    ) THEN
+        RAISE EXCEPTION
+            'TEST FAIL: orden abierta no usó fecha_termino_key = 0';
+    END IF;
+
     RAISE NOTICE
-        'OK 7: coherencia fecha_inicio/fecha_termino se valida en ETL.';
+        'OK 7: orden abierta usa fecha_termino_key = 0.';
 END
 $$;
 
 -- ============================================================
--- 8. FK DE PRODUCTO INEXISTENTE
+-- 8. FECHA_TERMINO_KEY NULL DEBE FALLAR
 -- ============================================================
 
 DO $$
@@ -325,30 +362,30 @@ BEGIN
         VALUES (
             920008,
             20260801,
-            20260810,
-            999999,
+            NULL,
+            0,
             0,
             0,
             'TEST-OP-007',
             100.00,
-            90.00,
-            10.00,
-            'PRUEBA'
+            50.00,
+            0.00,
+            'EN_PROCESO'
         );
 
         RAISE EXCEPTION
-            'TEST FAIL: se permitió producto_key inexistente';
+            'TEST FAIL: se permitió fecha_termino_key NULL';
 
     EXCEPTION
-        WHEN foreign_key_violation THEN
+        WHEN not_null_violation THEN
             RAISE NOTICE
-                'OK 8: producto_key inexistente rechazado.';
+                'OK 8: fecha_termino_key NULL rechazada.';
     END;
 END
 $$;
 
 -- ============================================================
--- 9. FK DE CENTRO DE COSTO INEXISTENTE
+-- 9. FK DE PRODUCTO INEXISTENTE
 -- ============================================================
 
 DO $$
@@ -371,14 +408,59 @@ BEGIN
             920009,
             20260801,
             20260810,
-            0,
             999999,
+            0,
             0,
             'TEST-OP-008',
             100.00,
             90.00,
             10.00,
-            'PRUEBA'
+            'TERMINADA'
+        );
+
+        RAISE EXCEPTION
+            'TEST FAIL: se permitió producto_key inexistente';
+
+    EXCEPTION
+        WHEN foreign_key_violation THEN
+            RAISE NOTICE
+                'OK 9: producto_key inexistente rechazado.';
+    END;
+END
+$$;
+
+-- ============================================================
+-- 10. FK DE CENTRO DE COSTO INEXISTENTE
+-- ============================================================
+
+DO $$
+BEGIN
+    BEGIN
+        INSERT INTO dw.fact_produccion (
+            produccion_fact_key,
+            fecha_inicio_key,
+            fecha_termino_key,
+            producto_key,
+            centro_costo_key,
+            area_key,
+            numero_orden,
+            cantidad_planificada,
+            cantidad_producida,
+            cantidad_rechazada,
+            estado
+        )
+        VALUES (
+            920010,
+            20260801,
+            20260810,
+            0,
+            999999,
+            0,
+            'TEST-OP-009',
+            100.00,
+            90.00,
+            10.00,
+            'TERMINADA'
         );
 
         RAISE EXCEPTION
@@ -387,7 +469,7 @@ BEGIN
     EXCEPTION
         WHEN foreign_key_violation THEN
             RAISE NOTICE
-                'OK 9: centro_costo_key inexistente rechazado.';
+                'OK 10: centro_costo_key inexistente rechazado.';
     END;
 END
 $$;
