@@ -1,0 +1,52 @@
+INSERT INTO dw.fact_asistencia (
+    fecha_key,
+    empleado_key,
+    area_key,
+    cargo_key,
+    centro_costo_key,
+    turno_key,
+    hora_entrada,
+    hora_salida,
+    estado_asistencia,
+    horas_trabajadas,
+    horas_normales,
+    horas_extras,
+    minutos_atraso,
+    dias_trabajados,
+    dias_ausentes,
+    cantidad_registros
+)
+VALUES (
+    %(fecha_key)s,
+    %(empleado_key)s,
+    %(area_key)s,
+    %(cargo_key)s,
+    %(centro_costo_key)s,
+    %(turno_key)s,
+    %(hora_entrada)s,
+    %(hora_salida)s,
+    %(estado_asistencia)s,
+    %(horas_trabajadas)s,
+    %(horas_normales)s,
+    %(horas_extras)s,
+    %(minutos_atraso)s,
+    %(dias_trabajados)s,
+    %(dias_ausentes)s,
+    %(cantidad_registros)s
+)
+ON CONFLICT (empleado_key, fecha_key)
+DO UPDATE SET
+    area_key = EXCLUDED.area_key,
+    cargo_key = EXCLUDED.cargo_key,
+    centro_costo_key = EXCLUDED.centro_costo_key,
+    turno_key = EXCLUDED.turno_key,
+    hora_entrada = EXCLUDED.hora_entrada,
+    hora_salida = EXCLUDED.hora_salida,
+    estado_asistencia = EXCLUDED.estado_asistencia,
+    horas_trabajadas = EXCLUDED.horas_trabajadas,
+    horas_normales = EXCLUDED.horas_normales,
+    horas_extras = EXCLUDED.horas_extras,
+    minutos_atraso = EXCLUDED.minutos_atraso,
+    dias_trabajados = EXCLUDED.dias_trabajados,
+    dias_ausentes = EXCLUDED.dias_ausentes,
+    cantidad_registros = EXCLUDED.cantidad_registros;
