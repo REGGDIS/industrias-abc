@@ -31,6 +31,7 @@ INSERT INTO dw.fact_consumo_insumo (
     area_key,
     numero_orden,
     consumo_id,
+    insumo_codigo_origen,
     cantidad_planificada,
     cantidad_consumida
 )
@@ -43,6 +44,7 @@ VALUES (
     0,
     'TEST-OP-001',
     930001,
+    'INS-1001',
     500.00,
     495.00
 );
@@ -55,6 +57,7 @@ BEGIN
         WHERE consumo_fact_key = 920001
           AND consumo_id = 930001
           AND numero_orden = 'TEST-OP-001'
+          AND insumo_codigo_origen = 'INS-1001'
           AND cantidad_planificada = 500.00
           AND cantidad_consumida = 495.00
           AND desviacion = -5.00
@@ -64,7 +67,7 @@ BEGIN
     END IF;
 
     RAISE NOTICE
-        'OK 1: registro válido de FACT_CONSUMO_INSUMO aceptado.';
+        'OK 1: registro válido y trazabilidad de insumo aceptados.';
 END
 $$;
 
@@ -84,6 +87,7 @@ BEGIN
             area_key,
             numero_orden,
             consumo_id,
+            insumo_codigo_origen,
             cantidad_planificada,
             cantidad_consumida
         )
@@ -96,6 +100,7 @@ BEGIN
             0,
             'TEST-OP-002',
             930001,
+            'INS-1002',
             250.00,
             240.00
         );
@@ -127,6 +132,7 @@ BEGIN
             area_key,
             numero_orden,
             consumo_id,
+            insumo_codigo_origen,
             cantidad_planificada,
             cantidad_consumida
         )
@@ -139,6 +145,7 @@ BEGIN
             0,
             'TEST-OP-003',
             930003,
+            'INS-1003',
             -1.00,
             0.00
         );
@@ -170,6 +177,7 @@ BEGIN
             area_key,
             numero_orden,
             consumo_id,
+            insumo_codigo_origen,
             cantidad_planificada,
             cantidad_consumida
         )
@@ -182,6 +190,7 @@ BEGIN
             0,
             'TEST-OP-004',
             930004,
+            'INS-1004',
             100.00,
             -1.00
         );
@@ -198,45 +207,52 @@ END
 $$;
 
 -- ============================================================
--- 5. CONSUMIDA MAYOR QUE PLANIFICADA
+-- 5. SOBRECONSUMO VÁLIDO
 -- ============================================================
+
+INSERT INTO dw.fact_consumo_insumo (
+    consumo_fact_key,
+    fecha_consumo_key,
+    producto_key,
+    insumo_key,
+    centro_costo_key,
+    area_key,
+    numero_orden,
+    consumo_id,
+    insumo_codigo_origen,
+    cantidad_planificada,
+    cantidad_consumida
+)
+VALUES (
+    920005,
+    20260805,
+    0,
+    0,
+    0,
+    0,
+    'TEST-OP-005',
+    930005,
+    'INS-1005',
+    100.00,
+    110.00
+);
 
 DO $$
 BEGIN
-    BEGIN
-        INSERT INTO dw.fact_consumo_insumo (
-            consumo_fact_key,
-            fecha_consumo_key,
-            producto_key,
-            insumo_key,
-            centro_costo_key,
-            area_key,
-            numero_orden,
-            consumo_id,
-            cantidad_planificada,
-            cantidad_consumida
-        )
-        VALUES (
-            920005,
-            20260805,
-            0,
-            0,
-            0,
-            0,
-            'TEST-OP-005',
-            930005,
-            100.00,
-            101.00
-        );
-
+    IF NOT EXISTS (
+        SELECT 1
+        FROM dw.fact_consumo_insumo
+        WHERE consumo_id = 930005
+          AND cantidad_planificada = 100.00
+          AND cantidad_consumida = 110.00
+          AND desviacion = 10.00
+    ) THEN
         RAISE EXCEPTION
-            'TEST FAIL: se permitió cantidad_consumida superior a cantidad_planificada';
+            'TEST FAIL: el sobreconsumo válido no quedó registrado correctamente';
+    END IF;
 
-    EXCEPTION
-        WHEN check_violation THEN
-            RAISE NOTICE
-                'OK 5: cantidad_consumida superior a cantidad_planificada rechazada.';
-    END;
+    RAISE NOTICE
+        'OK 5: sobreconsumo aceptado y desviación positiva calculada.';
 END
 $$;
 
@@ -256,6 +272,7 @@ BEGIN
             area_key,
             numero_orden,
             consumo_id,
+            insumo_codigo_origen,
             cantidad_planificada,
             cantidad_consumida
         )
@@ -268,6 +285,7 @@ BEGIN
             0,
             'TEST-OP-006',
             930006,
+            'INS-NO-MAP',
             100.00,
             90.00
         );
@@ -299,6 +317,7 @@ BEGIN
             area_key,
             numero_orden,
             consumo_id,
+            insumo_codigo_origen,
             cantidad_planificada,
             cantidad_consumida
         )
@@ -311,6 +330,7 @@ BEGIN
             0,
             'TEST-OP-007',
             930007,
+            'INS-1007',
             100.00,
             90.00
         );
@@ -342,6 +362,7 @@ BEGIN
             area_key,
             numero_orden,
             consumo_id,
+            insumo_codigo_origen,
             cantidad_planificada,
             cantidad_consumida
         )
@@ -354,6 +375,7 @@ BEGIN
             0,
             'TEST-OP-008',
             930008,
+            'INS-1008',
             100.00,
             90.00
         );
