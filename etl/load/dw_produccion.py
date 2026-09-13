@@ -635,6 +635,9 @@ def prepare_fact_consumo(
             centro_key = int(order["centro_costo_key"])
             area_key = int(order["area_key"])
 
+            if product_key == 0 or centro_key == 0 or area_key == 0:
+                needs_review = True
+
         fecha_key = smart_date_key(_as_date(row["fecha_consumo"]))
 
         if fecha_key not in contracts["fechas"]:
