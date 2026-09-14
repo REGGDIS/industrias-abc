@@ -57,14 +57,35 @@ def _conn_parts() -> tuple[str, str]:
 
 
 def _psql(conninfo: str, password: str, sql_path: Path) -> tuple[int, str, str]:
+    """Ejecuta un script con psql sin permitir fallback interactivo.
+
+    La conexión se entrega mediante ``-d`` y no como argumento posicional. Esto
+    es importante en Windows: si el conninfo aparece antes de las opciones,
+    ``psql`` puede tratar ``-v``/``-f`` como argumentos extra, ignorar el archivo
+    y quedar esperando entrada interactiva indefinidamente.
+    """
     env = dict(os.environ)
     if password:
         env["PGPASSWORD"] = password
+
     proc = subprocess.run(
-        ["psql", conninfo, "-v", "ON_ERROR_STOP=1", "-tA", "-F", "|", "-f", str(sql_path)],
+        [
+            "psql",
+            "-d",
+            conninfo,
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-tA",
+            "-F",
+            "|",
+            "-f",
+            str(sql_path),
+        ],
         capture_output=True,
         text=True,
         env=env,
+        stdin=subprocess.DEVNULL,
+        timeout=60,
     )
     return proc.returncode, proc.stdout, proc.stderr
 
