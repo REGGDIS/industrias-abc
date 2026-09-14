@@ -31,7 +31,10 @@ import {
   DataTable,
   type DataTableColumn,
 } from '../components/tables/DataTable';
-import { rrhhMockService } from '../services/mock/rrhh.mock.service';
+import { runtimeConfig } from '../config/runtime';
+import { getRrhhCatalogos } from '../services/api/rrhh.catalogos.api';
+import { rrhhService } from '../services/rrhh.service';
+import type { SelectOption } from '../types/common';
 import type { BiFilters } from '../types/filters';
 import type {
   RrhhResumen,
@@ -87,10 +90,22 @@ const columns: DataTableColumn<TrabajadorDetalle>[] = [
   },
 ];
 
+interface RrhhCatalogOptions {
+  anios: SelectOption[];
+  meses: SelectOption[];
+  areas: SelectOption[];
+  cargos: SelectOption[];
+}
 export function RrhhPage() {
   const [filters, setFilters] = useState<BiFilters>({
     anio: 2026,
   });
+
+  const [catalogs, setCatalogs] =
+    useState<RrhhCatalogOptions | null>(null);
+
+  const [catalogError, setCatalogError] =
+    useState<string | null>(null);
 
   const [summary, setSummary] =
     useState<RrhhResumen | null>(null);
@@ -99,11 +114,50 @@ export function RrhhPage() {
     useState<TrabajadoresResponse | null>(null);
 
   useEffect(() => {
+    if (runtimeConfig.dataMode !== 'api') {
+      return;
+    }
+
+    let active = true;
+
+    getRrhhCatalogos()
+      .then((result) => {
+        if (!active) {
+          return;
+        }
+
+        setCatalogs({
+          anios: result.anios,
+          meses: result.meses,
+          areas: result.areas,
+          cargos: result.cargos,
+        });
+
+        setCatalogError(null);
+      })
+      .catch((error: unknown) => {
+        if (!active) {
+          return;
+        }
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Error desconocido cargando catálogos.';
+
+        setCatalogError(message);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
     let active = true;
 
     Promise.all([
-      rrhhMockService.getResumen(filters),
-      rrhhMockService.getTrabajadores(filters),
+      rrhhService.getResumen(filters),
+      rrhhService.getTrabajadores(filters),
     ]).then(([summaryResult, workersResult]) => {
       if (!active) {
         return;
@@ -144,13 +198,41 @@ export function RrhhPage() {
       <RrhhFilterBar
         filters={filters}
         onChange={setFilters}
+        anios={
+          runtimeConfig.dataMode === 'api'
+            ? catalogs?.anios ?? []
+            : undefined
+        }
+        meses={
+          runtimeConfig.dataMode === 'api'
+            ? catalogs?.meses ?? []
+            : undefined
+        }
+        areas={
+          runtimeConfig.dataMode === 'api'
+            ? catalogs?.areas ?? []
+            : undefined
+        }
+        cargos={
+          runtimeConfig.dataMode === 'api'
+            ? catalogs?.cargos ?? []
+            : undefined
+        }
       />
+
+      {catalogError ? (
+        <AlertCard
+          tone="danger"
+          title="No fue posible cargar los catálogos RRHH"
+          description={catalogError}
+        />
+      ) : null}
 
       {summary && !hasData ? (
         <AlertCard
           tone="info"
           title="Sin trabajadores para los filtros seleccionados"
-          description="No existen registros mock para esta combinación de período, área y cargo."
+          description="No existen registros para esta combinación de período, área y cargo."
         />
       ) : null}
 
@@ -186,25 +268,37 @@ export function RrhhPage() {
 
             <KpiCard
               title="Rotación"
-              value={`${summary.kpis.rotacion.toLocaleString(
-                'es-CL',
-                {
-                  maximumFractionDigits: 1,
-                },
-              )} %`}
+              value={
+                summary.kpis.rotacion === null
+                  ? 'Sin datos'
+                  : `${summary.kpis.rotacion.toLocaleString(
+                      'es-CL',
+                      {
+                        maximumFractionDigits: 1,
+                      },
+                    )} %`
+              }
               helper="salidas del mes"
               icon={RefreshCcw}
             />
 
             <KpiCard
               title="Ausentismo"
-              value={`${summary.kpis.ausentismo.toLocaleString(
-                'es-CL',
-                {
-                  maximumFractionDigits: 1,
-                },
-              )} %`}
-              helper="días ausentes estimados"
+              value={
+                summary.kpis.ausentismo === null
+                  ? 'Sin datos'
+                  : `${summary.kpis.ausentismo.toLocaleString(
+                      'es-CL',
+                      {
+                        maximumFractionDigits: 1,
+                      },
+                    )} %`
+              }
+              helper={
+                summary.calidadDatos?.ausentismo?.datosDisponibles
+                  ? 'días ausentes observados'
+                  : 'sin datos para el período'
+              }
               icon={Activity}
             />
 
@@ -372,7 +466,7 @@ export function RrhhPage() {
             <DataTable
               columns={columns}
               rows={workers.items}
-              getRowKey={(row) => row.empleadoId}
+              getRowKey={(row) => row.trabajadorId}
             />
           </ChartCard>
         </>

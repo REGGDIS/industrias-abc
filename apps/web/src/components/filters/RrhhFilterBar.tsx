@@ -6,17 +6,26 @@ import {
   cargosMock,
   mesesMock,
 } from '../../mocks/catalogs.mock';
+import type { SelectOption } from '../../types/common';
 import type { BiFilters } from '../../types/filters';
 import { FilterSelect } from './FilterSelect';
 
 interface RrhhFilterBarProps {
   filters: BiFilters;
   onChange: (filters: BiFilters) => void;
+  anios?: SelectOption[];
+  meses?: SelectOption[];
+  areas?: SelectOption[];
+  cargos?: SelectOption[];
 }
 
 export function RrhhFilterBar({
   filters,
   onChange,
+  anios = aniosMock,
+  meses = mesesMock,
+  areas = areasMock,
+  cargos = cargosMock,
 }: RrhhFilterBarProps) {
   function updateFilter(
     key: keyof BiFilters,
@@ -24,7 +33,10 @@ export function RrhhFilterBar({
   ) {
     onChange({
       ...filters,
-      [key]: rawValue === '' ? undefined : Number(rawValue),
+      [key]:
+        rawValue === ''
+          ? undefined
+          : Number(rawValue),
     });
   }
 
@@ -34,29 +46,37 @@ export function RrhhFilterBar({
         <FilterSelect
           label="Año"
           value={filters.anio}
-          options={aniosMock}
-          onChange={(value) => updateFilter('anio', value)}
+          options={anios}
+          onChange={(value) =>
+            updateFilter('anio', value)
+          }
         />
 
         <FilterSelect
           label="Mes"
           value={filters.mes}
-          options={mesesMock}
-          onChange={(value) => updateFilter('mes', value)}
+          options={meses}
+          onChange={(value) =>
+            updateFilter('mes', value)
+          }
         />
 
         <FilterSelect
           label="Área"
           value={filters.areaId}
-          options={areasMock}
-          onChange={(value) => updateFilter('areaId', value)}
+          options={areas}
+          onChange={(value) =>
+            updateFilter('areaId', value)
+          }
         />
 
         <FilterSelect
           label="Cargo"
           value={filters.cargoId}
-          options={cargosMock}
-          onChange={(value) => updateFilter('cargoId', value)}
+          options={cargos}
+          onChange={(value) =>
+            updateFilter('cargoId', value)
+          }
         />
       </div>
 

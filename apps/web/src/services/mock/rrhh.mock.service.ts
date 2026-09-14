@@ -281,7 +281,7 @@ export class RrhhMockService implements RrhhService {
       .sort((a, b) => a.empleadoId - b.empleadoId)
       .slice(0, 20)
       .map((employee) => ({
-        empleadoId: employee.empleadoId,
+        trabajadorId: String(employee.empleadoId),
         nombre: employee.nombre,
         rut: employee.rut,
         area: employee.area,
