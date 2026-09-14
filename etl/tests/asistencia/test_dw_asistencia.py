@@ -1,358 +1,204 @@
-import json
-from datetime import date
+from datetime import date, time
 from decimal import Decimal
 from pathlib import Path
 
 from etl.load.dw_asistencia import (
     build_fact_rows,
     normalizar_rut,
-    rut_dv_valido,
-)
-
-
-FIXTURE = (
-    Path(__file__).resolve().parents[1]
-    / "fixtures"
-    / "asistencia"
-    / "asistencia_valida.json"
-)
-
-
-def cargar_fixture():
-    with FIXTURE.open(encoding="utf-8-sig") as archivo:
-        return json.load(archivo)
-
-
-def test_normalizar_rut():
-    assert normalizar_rut("15.000.984-7") == "15000984-7"
-
-
-def test_rut_valido():
-    assert rut_dv_valido("15.000.984-7") is True
-
-
-def test_rut_invalido():
-    assert rut_dv_valido("15.678.234-9") is False
-
-
-def test_fixture_contiene_datos_validos():
-    fila = cargar_fixture()
-
-    assert fila["rut"] == "15.000.984-7"
-    assert fila["fecha"] == "2026-08-24"
-    assert fila["estado"] == "PRESENTE"
-    assert fila["horas_trabajadas"] == 8.00
-    assert fila["horas_normales"] == 8.00
-    assert fila["horas_extras"] == 0.00
-    assert fila["atraso_minutos"] == 0
-
-
-def test_build_fact_present():
-    fila = cargar_fixture()
-
-    fila["fecha"] = date.fromisoformat(fila["fecha"])
-    fila.update(
-        {
-            "fecha_key": 20260824,
-            "empleado_key": 1,
-            "area_key": 1,
-            "cargo_key": 1,
-            "centro_costo_key": 1,
-            "turno_key": 3,
-        }
-    )
-
-    resultado = build_fact_rows([fila])
-
-    assert len(resultado) == 1
-
-    fact = resultado[0]
-
-    assert fact["fecha_key"] == 20260824
-    assert fact["empleado_key"] == 1
-    assert fact["area_key"] == 1
-    assert fact["cargo_key"] == 1
-    assert fact["centro_costo_key"] == 1
-    assert fact["turno_key"] == 3
-    assert fact["estado_asistencia"] == "PRESENTE"
-    assert fact["horas_trabajadas"] == Decimal("8.0")
-    assert fact["horas_normales"] == Decimal("8.0")
-    assert fact["horas_extras"] == Decimal("0")
-    assert fact["minutos_atraso"] == 0
-    assert fact["dias_trabajados"] == 1
-    assert fact["dias_ausentes"] == 0
-    assert fact["cantidad_registros"] == 1
-
-
-def test_grano_empleado_dia():
-    fila = cargar_fixture()
-
-    fila["fecha"] = date.fromisoformat(fila["fecha"])
-    fila.update(
-        {
-            "fecha_key": 20260824,
-            "empleado_key": 1,
-            "area_key": 1,
-            "cargo_key": 1,
-            "centro_costo_key": 1,
-            "turno_key": 3,
-        }
-    )
-
-    resultado = build_fact_rows([fila])
-
-    claves = {(r["empleado_key"], r["fecha_key"]) for r in resultado}
-
-    assert claves == {(1, 20260824)}
-from datetime import date
-
-from etl.load.dw_asistencia import (
     resolve_asistencia_dimension_keys,
 )
+from etl.load.dw_rrhh import rut_dv_valido
 
-def test_resolucion_scd2_y_turno_real():
-    fila = {
-        "asistencia_id": 9001,
-        "rut": "15.000.984-7",
-        "fecha": date(2026, 8, 24),
-        "hora_entrada": None,
-        "hora_salida": None,
-        "horas_trabajadas": 0,
-        "horas_normales": 0,
-        "horas_extras": 0,
-        "atraso_minutos": 0,
-        "ausentismo": 0,
-        "estado": "AUSENTE",
-        "turno_id": 3,
+
+def _trabajadores():
+    return [
+        {
+            "trabajador_id": 1,
+            "rut": "15.000.984-7",
+            "nombre": "Paula",
+            "apellido": "Civil",
+            "fecha_ingreso": date(2019, 6, 7),
+        }
+    ]
+
+
+def _dimensiones():
+    return {
+        "fechas": {
+            date(2026, 7, 27): 20260727,
+            date(2026, 7, 28): 20260728,
+        },
+        "empleados": {
+            "15000984-7": [
+                {
+                    "empleado_key": 10,
+                    "area_key": 5,
+                    "cargo_key": 7,
+                    "centro_costo_key": 5,
+                    "fecha_desde": date(2019, 6, 7),
+                    "fecha_hasta": date(2026, 7, 28),
+                },
+                {
+                    "empleado_key": 11,
+                    "area_key": 6,
+                    "cargo_key": 8,
+                    "centro_costo_key": 6,
+                    "fecha_desde": date(2026, 7, 28),
+                    "fecha_hasta": None,
+                },
+            ]
+        },
+        "turnos_origen": {1: "TURNO MAÑANA|08:00:00|17:00:00"},
+        "turnos_dw": {"TURNO MAÑANA|08:00:00|17:00:00": 2},
     }
 
-    resueltas, errores = resolve_asistencia_dimension_keys([fila])
 
-    assert errores == []
-    assert len(resueltas) == 1
-
-    resultado = resueltas[0]
-
-    assert resultado["empleado_key"] == 1
-    assert resultado["area_key"] == 1
-    assert resultado["cargo_key"] == 1
-    assert resultado["centro_costo_key"] == 1
-    assert resultado["turno_key"] == 3
-
-def test_rut_invalido_es_rechazado():
-    fila = {
-        "asistencia_id": 9002,
-        "rut": "15.678.234-9",
-        "fecha": date(2026, 8, 24),
-        "hora_entrada": None,
-        "hora_salida": None,
-        "horas_trabajadas": 0,
-        "horas_normales": 0,
-        "horas_extras": 0,
-        "atraso_minutos": 0,
-        "ausentismo": 0,
-        "estado": "AUSENTE",
-        "turno_id": 3,
-    }
-
-    resueltas, errores = resolve_asistencia_dimension_keys([fila])
-
-    assert resueltas == []
-    assert any(
-        error["regla"] == "RUT_INVALIDO"
-        for error in errores
-    )
-
-
-def test_empleado_no_resuelto():
-    fila = {
-        "asistencia_id": 9003,
-        "rut": "12.345.678-5",
-        "fecha": date(2026, 8, 24),
-        "hora_entrada": None,
-        "hora_salida": None,
-        "horas_trabajadas": 0,
-        "horas_normales": 0,
-        "horas_extras": 0,
-        "atraso_minutos": 0,
-        "ausentismo": 0,
-        "estado": "AUSENTE",
-        "turno_id": 3,
-    }
-
-    resueltas, errores = resolve_asistencia_dimension_keys([fila])
-
-    assert resueltas == []
-    assert any(
-        error["regla"] == "EMPLEADO_NO_RESUELTO"
-        for error in errores
-    )
-
-def test_turno_no_resuelto():
-    fila = {
-        "asistencia_id": 9004,
-        "rut": "15.000.984-7",
-        "fecha": date(2026, 8, 24),
-        "hora_entrada": None,
-        "hora_salida": None,
-        "horas_trabajadas": 0,
-        "horas_normales": 0,
-        "horas_extras": 0,
-        "atraso_minutos": 0,
-        "ausentismo": 0,
-        "estado": "AUSENTE",
-        "turno_id": 999,
-    }
-
-    resueltas, errores = resolve_asistencia_dimension_keys([fila])
-
-    assert resueltas == []
-    assert any(
-        error["regla"] == "TURNO_NO_RESUELTO"
-        for error in errores
-    )
-
-def test_ausente_con_horas_es_rechazado():
-    fila = {
-        "asistencia_id": 9005,
-        "rut": "15.000.984-7",
-        "fecha": date(2026, 8, 24),
-        "hora_entrada": None,
-        "hora_salida": None,
-        "horas_trabajadas": 8,
-        "horas_normales": 8,
-        "horas_extras": 0,
-        "atraso_minutos": 0,
-        "ausentismo": 1,
-        "estado": "AUSENTE",
-        "turno_id": 3,
-    }
-
-    resueltas, errores = resolve_asistencia_dimension_keys([fila])
-
-    assert resueltas == []
-    assert any(
-        error["regla"] == "AUSENTE_CON_HORAS_TRABAJADAS"
-        for error in errores
-    )
-
-
-def test_atraso_sin_minutos_es_rechazado():
-    fila = {
-        "asistencia_id": 9006,
-        "rut": "15.000.984-7",
-        "fecha": date(2026, 8, 24),
-        "hora_entrada": None,
-        "hora_salida": None,
-        "horas_trabajadas": 8,
-        "horas_normales": 8,
-        "horas_extras": 0,
-        "atraso_minutos": 0,
-        "ausentismo": 0,
-        "estado": "ATRASO",
-        "turno_id": 3,
-    }
-
-    resueltas, errores = resolve_asistencia_dimension_keys([fila])
-
-    assert resueltas == []
-    assert any(
-        error["regla"] == "ATRASO_SIN_MINUTOS"
-        for error in errores
-    )
-
-
-def test_horas_no_cuadran_es_rechazado():
-    fila = {
-        "asistencia_id": 9007,
-        "rut": "15.000.984-7",
-        "fecha": date(2026, 8, 24),
-        "hora_entrada": None,
-        "hora_salida": None,
-        "horas_trabajadas": 8,
-        "horas_normales": 7,
-        "horas_extras": 0,
+def _fila(**overrides):
+    row = {
+        "asistencia_id": 1,
+        "trabajador_id": 1,
+        "turno_id": 1,
+        "fecha": date(2026, 7, 27),
+        "hora_entrada": time(8, 0),
+        "hora_salida": time(17, 0),
+        "horas_trabajadas": Decimal("8.00"),
+        "horas_normales": Decimal("8.00"),
+        "horas_extras": Decimal("0.00"),
         "atraso_minutos": 0,
         "ausentismo": 0,
         "estado": "PRESENTE",
-        "turno_id": 3,
     }
+    row.update(overrides)
+    return row
 
-    resueltas, errores = resolve_asistencia_dimension_keys([fila])
+
+def test_normalizar_rut_reutiliza_formato_core():
+    assert normalizar_rut("15.000.984-7") == "15000984-7"
+
+
+def test_rut_dv_valido_compartido():
+    assert rut_dv_valido("15000984-7") is True
+    assert rut_dv_valido("15000984-8") is False
+
+
+def test_resuelve_empleado_scd2_y_contexto_historico():
+    resueltas, rechazadas, review = resolve_asistencia_dimension_keys(
+        [_fila()], _trabajadores(), _dimensiones()
+    )
+
+    assert rechazadas == []
+    assert review == []
+    assert len(resueltas) == 1
+    assert resueltas[0]["empleado_key"] == 10
+    assert resueltas[0]["area_key"] == 5
+    assert resueltas[0]["cargo_key"] == 7
+    assert resueltas[0]["centro_costo_key"] == 5
+    assert resueltas[0]["turno_key"] == 2
+
+
+def test_frontera_scd2_fecha_hasta_es_exclusiva():
+    resueltas, rechazadas, review = resolve_asistencia_dimension_keys(
+        [_fila(fecha=date(2026, 7, 28))], _trabajadores(), _dimensiones()
+    )
+
+    assert rechazadas == []
+    assert review == []
+    assert resueltas[0]["empleado_key"] == 11
+    assert resueltas[0]["area_key"] == 6
+
+
+def test_rut_invalido_va_a_review_y_no_se_homologa():
+    trabajadores = [{**_trabajadores()[0], "rut": "15.000.984-8"}]
+    resueltas, rechazadas, review = resolve_asistencia_dimension_keys(
+        [_fila()], trabajadores, _dimensiones()
+    )
 
     assert resueltas == []
-    assert any(
-        error["regla"] == "HORAS_NO_CUADRAN"
-        for error in errores
+    assert rechazadas == []
+    assert review[0]["regla"] == "RUT_INVALIDO"
+
+
+def test_empleado_no_resuelto_va_a_review():
+    dimensiones = _dimensiones()
+    dimensiones["empleados"] = {}
+    resueltas, rechazadas, review = resolve_asistencia_dimension_keys(
+        [_fila()], _trabajadores(), dimensiones
     )
+
+    assert resueltas == []
+    assert rechazadas == []
+    assert review[0]["regla"] == "EMPLEADO_NO_RESUELTO"
+
+
+def test_turno_no_resuelto_va_a_review():
+    dimensiones = _dimensiones()
+    dimensiones["turnos_dw"] = {}
+    resueltas, rechazadas, review = resolve_asistencia_dimension_keys(
+        [_fila()], _trabajadores(), dimensiones
+    )
+
+    assert resueltas == []
+    assert rechazadas == []
+    assert review[0]["regla"] == "TURNO_NO_RESUELTO"
+
+
+def test_fecha_no_resuelta_es_error():
+    resueltas, rechazadas, review = resolve_asistencia_dimension_keys(
+        [_fila(fecha=date(2035, 1, 1))], _trabajadores(), _dimensiones()
+    )
+
+    assert resueltas == []
+    assert review == []
+    assert rechazadas[0]["regla"] == "FECHA_NO_RESUELTA"
+
+
+def test_scd2_ambiguo_es_error():
+    dimensiones = _dimensiones()
+    dimensiones["empleados"]["15000984-7"].append(
+        {
+            "empleado_key": 99,
+            "area_key": 5,
+            "cargo_key": 7,
+            "centro_costo_key": 5,
+            "fecha_desde": date(2020, 1, 1),
+            "fecha_hasta": None,
+        }
+    )
+    resueltas, rechazadas, review = resolve_asistencia_dimension_keys(
+        [_fila()], _trabajadores(), dimensiones
+    )
+
+    assert resueltas == []
+    assert review == []
+    assert rechazadas[0]["regla"] == "SCD2_AMBIGUO"
 
 
 def test_duplicado_rut_fecha_es_rechazado():
-    fila1 = {
-        "asistencia_id": 9008,
-        "rut": "15.000.984-7",
-        "fecha": date(2026, 8, 24),
-        "hora_entrada": None,
-        "hora_salida": None,
-        "horas_trabajadas": 0,
-        "horas_normales": 0,
-        "horas_extras": 0,
-        "atraso_minutos": 0,
-        "ausentismo": 1,
-        "estado": "AUSENTE",
-        "turno_id": 3,
-    }
-
-    fila2 = {
-        **fila1,
-        "asistencia_id": 9009,
-    }
-
-    resueltas, errores = resolve_asistencia_dimension_keys(
-        [fila1, fila2]
+    fila_1 = _fila(asistencia_id=1)
+    fila_2 = _fila(asistencia_id=2)
+    resueltas, rechazadas, review = resolve_asistencia_dimension_keys(
+        [fila_1, fila_2], _trabajadores(), _dimensiones()
     )
 
     assert len(resueltas) == 1
-    assert any(
-        error["regla"] == "DUPLICADO_RUT_FECHA"
-        for error in errores
+    assert review == []
+    assert any(item["regla"] == "DUPLICADO_RUT_FECHA" for item in rechazadas)
+
+
+def test_build_fact_rows_respeta_semantica_estado():
+    resueltas, _, _ = resolve_asistencia_dimension_keys(
+        [_fila()], _trabajadores(), _dimensiones()
     )
+    fact = build_fact_rows(resueltas)[0]
 
-def test_scd2_fecha_hasta_es_exclusiva():
-    """
-    Verifica que fecha_hasta sea exclusiva:
-    en la fecha de cambio debe seleccionarse la siguiente versiï¿½n.
-    """
-    fila = {
-        "asistencia_id": 9010,
-        "rut": "15.008.765-1",
-        "fecha": date(2025, 2, 15),
-        "hora_entrada": None,
-        "hora_salida": None,
-        "horas_trabajadas": 0,
-        "horas_normales": 0,
-        "horas_extras": 0,
-        "atraso_minutos": 0,
-        "ausentismo": 1,
-        "estado": "AUSENTE",
-        "turno_id": 3,
-    }
+    assert fact["estado_asistencia"] == "PRESENTE"
+    assert fact["dias_trabajados"] == 1
+    assert fact["dias_ausentes"] == 0
+    assert fact["cantidad_registros"] == 1
+    assert fact["horas_trabajadas"] == Decimal("8.00")
 
-    resueltas, errores = resolve_asistencia_dimension_keys([fila])
 
-    assert errores == []
-    assert len(resueltas) == 1
-
-    resultado = resueltas[0]
-
-    assert resultado["empleado_key"] == 18
-
-def test_sql_fact_es_idempotente():
-    """
-    Verifica que la sentencia de carga de FACT_ASISTENCIA use el grano
-    empleado_key + fecha_key como clave de conflicto y actualice el
-    registro existente en lugar de insertar un duplicado.
-    """
+def test_sql_fact_protege_idempotencia_por_grano():
     sql_path = (
         Path(__file__).resolve().parents[2]
         / "sql"
@@ -361,7 +207,6 @@ def test_sql_fact_es_idempotente():
         / "asistencia"
         / "cargar_fact_asistencia.sql"
     )
-
     sql = sql_path.read_text(encoding="utf-8").upper()
 
     assert "ON CONFLICT (EMPLEADO_KEY, FECHA_KEY)" in sql
