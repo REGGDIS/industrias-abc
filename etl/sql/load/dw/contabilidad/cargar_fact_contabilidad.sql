@@ -1,0 +1,53 @@
+INSERT INTO dw.fact_contabilidad (
+    movimiento_id_origen,
+    fecha_key,
+    cuenta_key,
+    area_key,
+    centro_costo_key,
+    documento_tipo,
+    documento_numero,
+    descripcion,
+    moneda_origen,
+    tipo_cambio,
+    debe_origen,
+    haber_origen,
+    debe,
+    haber,
+    saldo,
+    cantidad_registros
+)
+VALUES (
+    %(movimiento_id_origen)s,
+    %(fecha_key)s,
+    %(cuenta_key)s,
+    %(area_key)s,
+    %(centro_costo_key)s,
+    %(documento_tipo)s,
+    %(documento_numero)s,
+    %(descripcion)s,
+    %(moneda_origen)s,
+    %(tipo_cambio)s,
+    %(debe_origen)s,
+    %(haber_origen)s,
+    %(debe)s,
+    %(haber)s,
+    %(saldo)s,
+    %(cantidad_registros)s
+)
+ON CONFLICT (movimiento_id_origen)
+DO UPDATE SET
+    fecha_key = EXCLUDED.fecha_key,
+    cuenta_key = EXCLUDED.cuenta_key,
+    area_key = EXCLUDED.area_key,
+    centro_costo_key = EXCLUDED.centro_costo_key,
+    documento_tipo = EXCLUDED.documento_tipo,
+    documento_numero = EXCLUDED.documento_numero,
+    descripcion = EXCLUDED.descripcion,
+    moneda_origen = EXCLUDED.moneda_origen,
+    tipo_cambio = EXCLUDED.tipo_cambio,
+    debe_origen = EXCLUDED.debe_origen,
+    haber_origen = EXCLUDED.haber_origen,
+    debe = EXCLUDED.debe,
+    haber = EXCLUDED.haber,
+    saldo = EXCLUDED.saldo,
+    cantidad_registros = EXCLUDED.cantidad_registros;
