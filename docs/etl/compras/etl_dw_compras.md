@@ -94,4 +94,132 @@ Suite global:
 python -m pytest -q
 ```
 
-La validación E2E debe ejecutar dos veces el runner y reconciliar posteriormente dimensiones, hechos, claves desconocidas, impuesto prorrateado y auditoría.
+## Cierre y evidencia final — 2026-09-14
+
+### Validación de origen
+
+El runner de validación de Compras fue ejecutado satisfactoriamente con cliente PostgreSQL 16.15 y PostgreSQL 16.11 en el contenedor de Compras.
+
+Resultado:
+
+```text
+status = OK
+normalizacion = 120 procesados / 120 normalizados / 0 review / 0 errores
+calidad       = 55 procesados / 53 validos / 2 review / 0 errores
+```
+
+Los dos registros en `REVIEW` corresponden a recepciones parciales ya conocidas en `detalle_orden_compra` 6 y 13. No existe ningún error bloqueante de calidad.
+
+### Pruebas automatizadas
+
+```text
+etl/tests/test_dw_compras.py: 10 passed
+suite global:               230 passed, 36 skipped
+```
+
+No se detectaron regresiones en la suite global.
+
+### Ejecución E2E e idempotencia
+
+Se ejecutó dos veces `python -m etl.run_dw_compras`.
+
+Primera ejecución (`execution_id=19`):
+
+```text
+status             = PARTIAL
+records_read       = 111
+records_valid      = 109
+records_rejected   = 0
+records_review     = 2
+records_inserted   = 49
+records_updated    = 0
+records_unchanged  = 0
+
+DIM_PROVEEDOR      = 15 inserted
+DIM_INSUMO         = 15 inserted
+FACT_COMPRAS       = 19 inserted
+```
+
+Segunda ejecución (`execution_id=20`):
+
+```text
+status             = PARTIAL
+records_read       = 111
+records_valid      = 109
+records_rejected   = 0
+records_review     = 2
+records_inserted   = 0
+records_updated    = 0
+records_unchanged  = 49
+
+DIM_PROVEEDOR      = 15 unchanged
+DIM_INSUMO         = 15 unchanged
+FACT_COMPRAS       = 19 unchanged
+```
+
+Esto demuestra idempotencia: una segunda corrida sin cambios no genera duplicados ni reescrituras innecesarias.
+
+El estado `PARTIAL` no representa una falla del ETL→DW. Se debe exclusivamente a los dos `SOURCE_REVIEW` de recepción parcial; la propia carga al DW terminó con `DW_REVIEW=0` y `REJECTED=0`.
+
+### Reconciliación del Data Warehouse
+
+Conteos físicos:
+
+```text
+DIM_PROVEEDOR reales = 15
+DIM_INSUMO reales    = 15
+FACT_COMPRAS         = 19
+```
+
+Claves desconocidas en `FACT_COMPRAS`:
+
+```text
+proveedor_key = 0      -> 0 filas
+insumo_key = 0         -> 0 filas
+centro_costo_key = 0   -> 0 filas
+area_key = 0           -> 0 filas
+```
+
+La homologación dimensional quedó completamente resuelta para el dataset actual.
+
+### Reconciliación monetaria por moneda
+
+Los importes se mantienen separados por moneda de origen; no se mezclan monedas sin conversión explícita.
+
+| Moneda | Líneas | Subtotal | Impuesto | Total | Recibido | Rechazado |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| CLP | 16 | 16.764.000,00 | 3.185.160,00 | 19.949.160,00 | 9.120,00 | 20,00 |
+| EUR | 2 | 1.650,00 | 313,50 | 1.963,50 | 0,00 | 0,00 |
+| USD | 1 | 1.260,00 | 239,40 | 1.499,40 | 300,00 | 0,00 |
+
+En cada moneda se conserva la igualdad `subtotal + impuesto = total`.
+
+### Auditoría persistida
+
+`public.etl_execution_log` registró correctamente:
+
+```text
+execution_id 19 | COMPRAS | ETL_DW_COMPRAS | PARTIAL | inserted=49 | unchanged=0  | rejected=0 | review=2
+execution_id 20 | COMPRAS | ETL_DW_COMPRAS | PARTIAL | inserted=0  | unchanged=49 | rejected=0 | review=2
+```
+
+Mensajes de auditoría:
+
+```text
+ETL Compras -> DW ejecutado. SOURCE_REVIEW=2 DW_REVIEW=0 REJECTED=0.
+```
+
+## Estado final
+
+El **ETL→DW de Compras queda técnicamente cerrado y apto para integración a `develop`**. Se comprobó:
+
+- validación fuente sin errores bloqueantes;
+- carga de `DIM_PROVEEDOR`, `DIM_INSUMO` y `FACT_COMPRAS`;
+- homologación completa de claves empresariales del dataset actual;
+- prorrateo monetario consistente;
+- recepción agregada sin multiplicación de líneas;
+- idempotencia en segunda ejecución;
+- auditoría persistida;
+- suite específica y global en verde.
+
+Los dos casos de recepción parcial permanecen como `REVIEW` operacional conocido y no requieren corrección del ETL.
