@@ -15,9 +15,9 @@ def run() -> dict:
         result = run_dw_contabilidad()
 
         records_read = sum(result["source"].values())
-        records_valid = result["source_validation"]["validos"]
         records_rejected = len(result["rejected"])
         records_review = len(result["review"])
+        records_valid = result["source_validation"]["validos"] - records_rejected
 
         records_inserted = (
             result["dim_cuenta_contable"]["inserted"]
