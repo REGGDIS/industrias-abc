@@ -321,7 +321,7 @@ def test_duplicado_rut_fecha_es_rechazado():
 def test_scd2_fecha_hasta_es_exclusiva():
     """
     Verifica que fecha_hasta sea exclusiva:
-    en la fecha de cambio debe seleccionarse la siguiente versi�n.
+    en la fecha de cambio debe seleccionarse la siguiente versiï¿½n.
     """
     fila = {
         "asistencia_id": 9010,
@@ -346,3 +346,23 @@ def test_scd2_fecha_hasta_es_exclusiva():
     resultado = resueltas[0]
 
     assert resultado["empleado_key"] == 18
+
+def test_sql_fact_es_idempotente():
+    """
+    Verifica que la sentencia de carga de FACT_ASISTENCIA use el grano
+    empleado_key + fecha_key como clave de conflicto y actualice el
+    registro existente en lugar de insertar un duplicado.
+    """
+    sql_path = (
+        Path(__file__).resolve().parents[2]
+        / "sql"
+        / "load"
+        / "dw"
+        / "asistencia"
+        / "cargar_fact_asistencia.sql"
+    )
+
+    sql = sql_path.read_text(encoding="utf-8").upper()
+
+    assert "ON CONFLICT (EMPLEADO_KEY, FECHA_KEY)" in sql
+    assert "DO UPDATE SET" in sql
