@@ -1,0 +1,14 @@
+﻿{
+  "asistencia_id": 9001,
+  "rut": "15.000.984-7",
+  "fecha": "2026-08-24",
+  "turno_id": 3,
+  "hora_entrada": "09:00:00",
+  "hora_salida": "18:00:00",
+  "horas_trabajadas": 8.00,
+  "horas_normales": 8.00,
+  "horas_extras": 0.00,
+  "atraso_minutos": 0,
+  "ausentismo": 0,
+  "estado": "PRESENTE"
+}
