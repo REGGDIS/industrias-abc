@@ -1,0 +1,23 @@
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(ENV_FILE)
+
+
+@dataclass(frozen=True)
+class Settings:
+    dw_host: str = os.getenv("DW_DB_HOST", "localhost")
+    dw_port: int = int(os.getenv("DW_DB_PORT", "5437"))
+    dw_name: str = os.getenv("DW_DB_NAME", "industrias_abc_dw")
+    dw_user: str = os.getenv("DW_DB_USER", "dw_user")
+    dw_password: str = os.getenv("DW_DB_PASSWORD", "")
+
+
+settings = Settings()
