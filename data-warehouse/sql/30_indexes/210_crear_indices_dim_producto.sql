@@ -1,0 +1,21 @@
+-- ============================================================
+-- Industrias ABC - Data Warehouse
+-- Script: 210_crear_indices_dim_producto.sql
+-- Objetivo:
+--   Crear índices complementarios de la dimensión Producto.
+-- Motor:
+--   PostgreSQL 16
+-- Esquema:
+--   dw
+--
+-- Criterio:
+--   La business key de DIM_PRODUCTO (codigo_producto) ya queda
+--   indexada por su restricción UNIQUE.
+--   No se crea un índice redundante sobre dicha columna.
+-- ============================================================
+
+-- DIM_PRODUCTO
+-- La business key codigo_producto ya queda indexada mediante:
+--   uq_dim_producto_codigo
+--
+-- No se requieren índices complementarios en esta etapa.
