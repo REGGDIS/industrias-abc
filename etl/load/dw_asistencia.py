@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import time, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -41,10 +42,25 @@ def normalizar_rut(rut: str | None) -> str | None:
     return normalize_rut(rut)
 
 
+def _to_time(value) -> time | None:
+    if value is None:
+        return None
+    if isinstance(value, time):
+        return value
+    if isinstance(value, timedelta):
+        seconds = int(value.total_seconds()) % (24 * 3600)
+        return time(seconds // 3600, (seconds % 3600) // 60, seconds % 60)
+    if isinstance(value, str):
+        return time.fromisoformat(value)
+    raise TypeError(f"Hora no soportada: {type(value).__name__}")
+
+
 def _turno_bk(turno: dict) -> str:
+    inicio = _to_time(turno["hora_inicio"])
+    fin = _to_time(turno["hora_fin"])
     return (
         f"{str(turno['nombre_turno']).strip().upper()}|"
-        f"{turno['hora_inicio']}|{turno['hora_fin']}"
+        f"{inicio.isoformat()}|{fin.isoformat()}"
     )
 
 
@@ -93,8 +109,8 @@ def load_dim_turno(turnos: list[dict]) -> dict:
                 row = {
                     "turno_bk": _turno_bk(turno),
                     "nombre_turno": str(turno["nombre_turno"]).strip().upper(),
-                    "hora_inicio": turno["hora_inicio"],
-                    "hora_fin": turno["hora_fin"],
+                    "hora_inicio": _to_time(turno["hora_inicio"]),
+                    "hora_fin": _to_time(turno["hora_fin"]),
                     "horas_jornada": Decimal(str(turno["horas_jornada"])),
                 }
                 cursor.execute(
@@ -272,8 +288,8 @@ def build_fact_rows(rows: list[dict]) -> list[dict]:
                 "cargo_key": row["cargo_key"],
                 "centro_costo_key": row["centro_costo_key"],
                 "turno_key": row["turno_key"],
-                "hora_entrada": row["hora_entrada"],
-                "hora_salida": row["hora_salida"],
+                "hora_entrada": _to_time(row["hora_entrada"]),
+                "hora_salida": _to_time(row["hora_salida"]),
                 "estado_asistencia": estado,
                 "horas_trabajadas": Decimal(str(row["horas_trabajadas"])),
                 "horas_normales": Decimal(str(row["horas_normales"])),
