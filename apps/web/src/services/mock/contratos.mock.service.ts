@@ -154,7 +154,7 @@ function buildDetail(
 
   return {
     contratoId: record.contratoId,
-    empleadoId: record.empleadoId,
+    trabajadorId: String(record.empleadoId),
     empleado: record.empleado,
     tipoContrato: record.tipoContrato,
     fechaInicio: record.fechaInicio,

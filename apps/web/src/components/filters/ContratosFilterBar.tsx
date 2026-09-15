@@ -1,11 +1,10 @@
+import {
+  useEffect,
+  useState,
+} from 'react';
 import { RotateCcw } from 'lucide-react';
 
-import {
-  aniosMock,
-  areasMock,
-  mesesMock,
-} from '../../mocks/catalogs.mock';
-import { rrhhMockEmpleados } from '../../mocks/rrhh.mock';
+import { getContratosCatalogos } from '../../services/contratos-catalogos.service';
 import type { SelectOption } from '../../types/common';
 import type { BiFilters } from '../../types/filters';
 import { FilterSelect } from './FilterSelect';
@@ -15,24 +14,88 @@ interface ContratosFilterBarProps {
   onChange: (filters: BiFilters) => void;
 }
 
-const trabajadoresMock: SelectOption[] = rrhhMockEmpleados.map(
-  (employee) => ({
-    id: employee.empleadoId,
-    label: employee.nombre,
-  }),
-);
-
 export function ContratosFilterBar({
   filters,
   onChange,
 }: ContratosFilterBarProps) {
-  function updateFilter(
-    key: keyof BiFilters,
+  const [anios, setAnios] =
+    useState<SelectOption[]>([]);
+
+  const [meses, setMeses] =
+    useState<SelectOption[]>([]);
+
+  const [areas, setAreas] =
+    useState<SelectOption[]>([]);
+
+  const [trabajadores, setTrabajadores] =
+    useState<SelectOption[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    getContratosCatalogos(filters).then(
+      (catalogos) => {
+        if (!active) {
+          return;
+        }
+
+        setAnios(catalogos.anios);
+        setMeses(catalogos.meses);
+        setAreas(catalogos.areas);
+        setTrabajadores(
+          catalogos.trabajadores,
+        );
+
+        if (
+          !filters.mes &&
+          catalogos.ultimoPeriodoDisponible
+        ) {
+          onChange({
+            ...filters,
+            anio:
+              catalogos.ultimoPeriodoDisponible.anio,
+            mes:
+              catalogos.ultimoPeriodoDisponible.mes,
+          });
+        }
+      },
+    );
+
+    return () => {
+      active = false;
+    };
+  }, [
+    filters.anio,
+    filters.mes,
+    filters.areaId,
+  ]);
+
+  function updateNumberFilter(
+    key: 'anio' | 'mes' | 'areaId',
     rawValue: string,
   ) {
     onChange({
       ...filters,
-      [key]: rawValue === '' ? undefined : Number(rawValue),
+      [key]:
+        rawValue === ''
+          ? undefined
+          : Number(rawValue),
+      trabajadorId:
+        key === 'areaId'
+          ? undefined
+          : filters.trabajadorId,
+    });
+  }
+
+  function updateTrabajador(
+    rawValue: string,
+  ) {
+    onChange({
+      ...filters,
+      trabajadorId:
+        rawValue === ''
+          ? undefined
+          : rawValue,
     });
   }
 
@@ -42,38 +105,59 @@ export function ContratosFilterBar({
         <FilterSelect
           label="Año"
           value={filters.anio}
-          options={aniosMock}
-          onChange={(value) => updateFilter('anio', value)}
+          options={anios}
+          placeholder="Todos"
+          onChange={(value) =>
+            updateNumberFilter(
+              'anio',
+              value,
+            )
+          }
         />
 
         <FilterSelect
           label="Mes"
           value={filters.mes}
-          options={mesesMock}
-          onChange={(value) => updateFilter('mes', value)}
+          options={meses}
+          placeholder="Todos"
+          onChange={(value) =>
+            updateNumberFilter(
+              'mes',
+              value,
+            )
+          }
         />
 
         <FilterSelect
           label="Área"
           value={filters.areaId}
-          options={areasMock}
-          onChange={(value) => updateFilter('areaId', value)}
+          options={areas}
+          placeholder="Todas"
+          onChange={(value) =>
+            updateNumberFilter(
+              'areaId',
+              value,
+            )
+          }
         />
 
         <FilterSelect
           label="Trabajador"
-          value={filters.empleadoId}
-          options={trabajadoresMock}
-          onChange={(value) =>
-            updateFilter('empleadoId', value)
-          }
+          value={filters.trabajadorId}
+          options={trabajadores}
+          placeholder="Todos"
+          onChange={updateTrabajador}
         />
       </div>
 
       <button
         type="button"
         className="filter-clear-button"
-        onClick={() => onChange({})}
+        onClick={() =>
+          onChange({
+            anio: filters.anio ?? 2026,
+          })
+        }
       >
         <RotateCcw size={16} />
         Limpiar

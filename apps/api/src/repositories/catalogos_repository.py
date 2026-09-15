@@ -171,3 +171,75 @@ def obtener_periodos_asistencia() -> dict:
         "fechaMaximaDisponible":
             fecha_maxima.isoformat(),
     }
+
+def obtener_periodos_contratos() -> dict:
+    sql = """
+        SELECT
+            MIN(fecha_inicio) AS fecha_minima
+        FROM dw.dim_contrato
+        WHERE contrato_key > 0;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            row = cursor.fetchone()
+
+    fecha_minima = row["fecha_minima"]
+
+    if fecha_minima is None:
+        return {
+            "anios": [],
+            "meses": [],
+            "ultimoPeriodoDisponible": None,
+            "fechaMaximaDisponible": None,
+        }
+
+    from datetime import date
+
+    hoy = date.today()
+
+    anios = list(
+        range(
+            fecha_minima.year,
+            hoy.year + 1,
+        )
+    )
+
+    nombres_meses = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+    ]
+
+    meses = [
+        {
+            "id": numero,
+            "label": nombre,
+        }
+        for numero, nombre in enumerate(
+            nombres_meses,
+            start=1,
+        )
+        if numero <= hoy.month
+    ]
+
+    return {
+        "anios": anios,
+        "meses": meses,
+        "ultimoPeriodoDisponible": {
+            "anio": hoy.year,
+            "mes": hoy.month,
+        },
+        "fechaMaximaDisponible":
+            hoy.isoformat(),
+    }
