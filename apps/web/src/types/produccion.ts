@@ -1,28 +1,63 @@
-import type { CategoryValue, MonthlyValue, PaginatedResponse } from './common';
+import type {
+  CategoryValue,
+  PaginatedResponse,
+} from './common';
 
 export interface ProduccionKpis {
-  produccionPlanificada: number;
-  produccionReal: number;
+  cantidadPlanificada: number;
+  cantidadProducida: number;
   cumplimientoProduccion: number;
   cantidadRechazada: number;
   tasaRechazo: number;
-  consumoInsumos: number;
+  totalOrdenes: number;
+  productosActivos: number;
+}
+
+export interface ProduccionEvolucion {
+  anio: number;
+  mes: number;
+  label: string;
+  planificada: number;
+  producida: number;
+  rechazada: number;
+}
+
+export interface ProduccionConsumoInsumo {
+  label: string;
+  planificado: number;
+  consumido: number;
+  desviacion: number;
 }
 
 export interface ProduccionDetalle {
-  ordenProduccionId: number;
+  produccionId: number;
+  numeroOrden: string;
+  fechaInicio: string;
+  fechaTermino: string | null;
+  productoCodigo: string;
   producto: string;
+  categoria: string;
+  unidadMedida: string;
   cantidadPlanificada: number;
   cantidadProducida: number;
   cantidadRechazada: number;
-  cumplimiento: number;
+  estado: string;
 }
 
 export interface ProduccionResumen {
+  periodo: {
+    anio: number;
+    mes: number;
+  };
+  filtrosAplicados: {
+    productoId: number | null;
+    insumoRef: string | null;
+  };
   kpis: ProduccionKpis;
-  evolucionMensual: MonthlyValue[];
-  productosConMayorRechazo: CategoryValue[];
-  consumoPorInsumo: CategoryValue[];
+  evolucionMensual: ProduccionEvolucion[];
+  rechazoPorProducto: CategoryValue[];
+  ordenesPorEstado: CategoryValue[];
+  consumoPorInsumo: ProduccionConsumoInsumo[];
 }
 
 export type ProduccionDetalleResponse =

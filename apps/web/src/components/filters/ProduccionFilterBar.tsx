@@ -1,33 +1,130 @@
+import {
+  useEffect,
+  useState,
+} from 'react';
 import { RotateCcw } from 'lucide-react';
 
 import {
-  aniosMock,
-  insumosMock,
-  mesesMock,
-  productosMock,
-} from '../../mocks/catalogs.mock';
+  getProduccionCatalogos,
+  type ProduccionCatalogos,
+} from '../../services/produccion-catalogos.service';
 import type { BiFilters } from '../../types/filters';
 import { FilterSelect } from './FilterSelect';
 
 interface ProduccionFilterBarProps {
   filters: BiFilters;
-  onChange: (filters: BiFilters) => void;
+  onChange: (
+    filters: BiFilters,
+  ) => void;
 }
+
+const emptyCatalogos:
+  ProduccionCatalogos = {
+    anios: [],
+    meses: [],
+    productos: [],
+    insumos: [],
+    ultimoPeriodoDisponible:
+      null,
+    fechaMaximaDisponible:
+      null,
+  };
 
 export function ProduccionFilterBar({
   filters,
   onChange,
 }: ProduccionFilterBarProps) {
-  function updateFilter(
-    key: keyof BiFilters,
+  const [
+    catalogos,
+    setCatalogos,
+  ] = useState<ProduccionCatalogos>(
+    emptyCatalogos,
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    getProduccionCatalogos(
+      filters,
+    ).then((result) => {
+      if (!active) {
+        return;
+      }
+
+      setCatalogos(result);
+
+      if (
+        filters.mes == null &&
+        result
+          .ultimoPeriodoDisponible
+      ) {
+        onChange({
+          ...filters,
+          anio:
+            result
+              .ultimoPeriodoDisponible
+              .anio,
+          mes:
+            result
+              .ultimoPeriodoDisponible
+              .mes,
+        });
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    filters.anio,
+    filters.mes,
+  ]);
+
+  function updateNumericFilter(
+    key:
+      | 'anio'
+      | 'mes'
+      | 'productoId',
+    rawValue: string,
+  ) {
+    const value =
+      rawValue === ''
+        ? undefined
+        : Number(rawValue);
+
+    if (key === 'anio') {
+      onChange({
+        ...filters,
+        anio: value,
+        mes: undefined,
+      });
+
+      return;
+    }
+
+    onChange({
+      ...filters,
+      [key]: value,
+    });
+  }
+
+  function updateInsumo(
     rawValue: string,
   ) {
     onChange({
       ...filters,
-      [key]:
+      insumoRef:
         rawValue === ''
           ? undefined
-          : Number(rawValue),
+          : rawValue,
+    });
+  }
+
+  function clearFilters() {
+    onChange({
+      anio:
+        filters.anio ??
+        2026,
     });
   }
 
@@ -37,27 +134,42 @@ export function ProduccionFilterBar({
         <FilterSelect
           label="Año"
           value={filters.anio}
-          options={aniosMock}
+          options={
+            catalogos.anios
+          }
           onChange={(value) =>
-            updateFilter('anio', value)
+            updateNumericFilter(
+              'anio',
+              value,
+            )
           }
         />
 
         <FilterSelect
           label="Mes"
           value={filters.mes}
-          options={mesesMock}
+          options={
+            catalogos.meses
+          }
           onChange={(value) =>
-            updateFilter('mes', value)
+            updateNumericFilter(
+              'mes',
+              value,
+            )
           }
         />
 
         <FilterSelect
           label="Producto"
-          value={filters.productoId}
-          options={productosMock}
+          value={
+            filters.productoId
+          }
+          options={
+            catalogos.productos
+          }
+          placeholder="Todos"
           onChange={(value) =>
-            updateFilter(
+            updateNumericFilter(
               'productoId',
               value,
             )
@@ -65,14 +177,16 @@ export function ProduccionFilterBar({
         />
 
         <FilterSelect
-          label="Insumo"
-          value={filters.insumoId}
-          options={insumosMock}
-          onChange={(value) =>
-            updateFilter(
-              'insumoId',
-              value,
-            )
+          label="Referencia de insumo"
+          value={
+            filters.insumoRef
+          }
+          options={
+            catalogos.insumos
+          }
+          placeholder="Todas"
+          onChange={
+            updateInsumo
           }
         />
       </div>
@@ -80,7 +194,7 @@ export function ProduccionFilterBar({
       <button
         type="button"
         className="filter-clear-button"
-        onClick={() => onChange({})}
+        onClick={clearFilters}
       >
         <RotateCcw size={16} />
         Limpiar

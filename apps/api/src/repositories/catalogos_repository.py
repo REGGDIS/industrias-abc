@@ -619,3 +619,183 @@ def obtener_insumos_compras() -> list[dict]:
         with connection.cursor() as cursor:
             cursor.execute(sql)
             return cursor.fetchall()
+
+
+def obtener_productos_produccion() -> list[dict]:
+    sql = """
+        SELECT DISTINCT
+            dp.producto_key AS id,
+            dp.codigo_producto AS codigo,
+            dp.nombre_producto AS label
+        FROM dw.dim_producto dp
+        JOIN dw.fact_produccion fp
+          ON fp.producto_key =
+             dp.producto_key
+        WHERE dp.producto_key > 0
+        ORDER BY dp.nombre_producto;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            return cursor.fetchall()
+
+
+def obtener_insumos_produccion() -> list[dict]:
+    sql = """
+        SELECT DISTINCT
+            fci.insumo_codigo_origen
+                AS id,
+            fci.insumo_codigo_origen
+                AS codigo,
+            fci.insumo_codigo_origen
+                AS label
+        FROM dw.fact_consumo_insumo fci
+        WHERE
+            fci.insumo_codigo_origen
+            IS NOT NULL
+          AND TRIM(
+              fci.insumo_codigo_origen
+          ) <> ''
+        ORDER BY
+            fci.insumo_codigo_origen;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            return cursor.fetchall()
+
+
+def obtener_periodos_produccion(
+    anio: int | None = None,
+) -> dict:
+    sql = """
+        SELECT DISTINCT
+            df.anio,
+            df.mes
+        FROM dw.fact_produccion fp
+        JOIN dw.dim_fecha df
+          ON df.fecha_key =
+             fp.fecha_inicio_key
+        ORDER BY
+            df.anio,
+            df.mes;
+    """
+
+    sql_fecha_maxima = """
+        SELECT
+            MAX(df.fecha) AS fecha_maxima
+        FROM dw.fact_produccion fp
+        JOIN dw.dim_fecha df
+          ON df.fecha_key =
+             fp.fecha_inicio_key;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+
+            cursor.execute(
+                sql_fecha_maxima
+            )
+            fecha_row = (
+                cursor.fetchone()
+            )
+
+    if not rows:
+        return {
+            "anios": [],
+            "meses": [],
+            "ultimoPeriodoDisponible":
+                None,
+            "fechaMaximaDisponible":
+                None,
+        }
+
+    nombres_meses = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+    ]
+
+    anios = sorted({
+        int(row["anio"])
+        for row in rows
+    })
+
+    anio_objetivo = (
+        anio
+        if anio is not None
+        else int(
+            rows[-1]["anio"]
+        )
+    )
+
+    periodos_anio = [
+        row
+        for row in rows
+        if int(row["anio"])
+        == anio_objetivo
+    ]
+
+    meses = [
+        {
+            "id":
+                int(row["mes"]),
+            "label":
+                nombres_meses[
+                    int(row["mes"])
+                    - 1
+                ],
+        }
+        for row in periodos_anio
+    ]
+
+    ultimo_periodo = (
+        {
+            "anio":
+                anio_objetivo,
+            "mes":
+                int(
+                    periodos_anio[
+                        -1
+                    ]["mes"]
+                ),
+        }
+        if periodos_anio
+        else None
+    )
+
+    fecha_maxima = (
+        fecha_row[
+            "fecha_maxima"
+        ]
+        if fecha_row
+        else None
+    )
+
+    return {
+        "anios":
+            anios,
+        "meses":
+            meses,
+        "ultimoPeriodoDisponible":
+            ultimo_periodo,
+        "fechaMaximaDisponible":
+            (
+                fecha_maxima.isoformat()
+                if fecha_maxima
+                else None
+            ),
+    }

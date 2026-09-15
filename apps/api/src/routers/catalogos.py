@@ -15,6 +15,9 @@ from src.repositories.catalogos_repository import (
     obtener_periodos_compras,
     obtener_proveedores_compras,
     obtener_insumos_compras,
+    obtener_productos_produccion,
+    obtener_insumos_produccion,
+    obtener_periodos_produccion,
 )
 
 
@@ -66,6 +69,22 @@ def listar_insumos_compras():
     }
 
 
+@router.get("/productos-produccion")
+def listar_productos_produccion():
+    return {
+        "items":
+            obtener_productos_produccion()
+    }
+
+
+@router.get("/insumos-produccion")
+def listar_insumos_produccion():
+    return {
+        "items":
+            obtener_insumos_produccion()
+    }
+
+
 @router.get("/periodos")
 def listar_periodos(
     dominio: str = Query(...),
@@ -95,10 +114,15 @@ def listar_periodos(
             anio=anio,
         )
 
+    if dominio_normalizado == "produccion":
+        return obtener_periodos_produccion(
+            anio=anio,
+        )
+
     raise HTTPException(
         status_code=400,
         detail=(
             "Dominio no soportado. "
-            "Use rrhh, asistencia, contratos, remuneraciones, contabilidad o compras."
+            "Use rrhh, asistencia, contratos, remuneraciones, contabilidad, compras o produccion."
         ),
     )

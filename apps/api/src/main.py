@@ -11,6 +11,7 @@ from src.routers.rrhh import router as rrhh_router
 from src.routers.remuneraciones import router as remuneraciones_router
 from src.routers.contabilidad import router as contabilidad_router
 from src.routers.compras import router as compras_router
+from src.routers.produccion import router as produccion_router
 
 
 app = FastAPI(
@@ -57,3 +58,4 @@ app.include_router(asistencia_router)
 app.include_router(remuneraciones_router)
 app.include_router(contabilidad_router)
 app.include_router(compras_router)
+app.include_router(produccion_router)
