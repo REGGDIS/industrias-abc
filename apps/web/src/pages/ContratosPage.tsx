@@ -31,7 +31,7 @@ import {
   DataTable,
   type DataTableColumn,
 } from '../components/tables/DataTable';
-import { contratosMockService } from '../services/mock/contratos.mock.service';
+import { contratosService } from '../services/contratos.service';
 import type {
   ContratoDetalle,
   ContratosDetalleResponse,
@@ -42,7 +42,7 @@ import type { BiFilters } from '../types/filters';
 const numberFormatter =
   new Intl.NumberFormat('es-CL');
 
-function formatDate(value?: string) {
+function formatDate(value?: string | null) {
   if (!value) {
     return 'Sin término';
   }
@@ -83,7 +83,7 @@ const columns: DataTableColumn<ContratoDetalle>[] = [
     label: 'Días restantes',
     align: 'right',
     render: (row) =>
-      row.diasRestantes === undefined
+      row.diasRestantes == null
         ? '—'
         : numberFormatter.format(
             row.diasRestantes,
@@ -124,8 +124,8 @@ export function ContratosPage() {
     let active = true;
 
     Promise.all([
-      contratosMockService.getResumen(filters),
-      contratosMockService.getDetalle(filters),
+      contratosService.getResumen(filters),
+      contratosService.getDetalle(filters),
     ]).then(([summaryResult, detailResult]) => {
       if (!active) {
         return;
@@ -172,7 +172,7 @@ export function ContratosPage() {
         <AlertCard
           tone="info"
           title="Sin contratos para los filtros seleccionados"
-          description="No existen contratos mock para esta combinación de período, área y trabajador."
+          description="No existen contratos para esta combinación de período, área y trabajador."
         />
       ) : null}
 
