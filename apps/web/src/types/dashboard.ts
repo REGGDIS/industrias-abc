@@ -1,34 +1,53 @@
-import type { CategoryValue, MonthlyValue } from './common';
-
 export interface DashboardKpis {
-  totalTrabajadores: number;
   trabajadoresActivos: number;
+  empleadosConAsistencia: number;
+
+  horasExtrasAsistencia: number;
+  minutosAtraso: number;
+  diasAusentes: number;
 
   costoRemuneraciones: number;
-  horasExtras: number;
+  sueldoLiquido: number;
 
   totalCompras: number;
-  gastosContables: number;
+  ordenesCompra: number;
+  ordenesCompraEfectivas: number;
 
+  movimientosContables: number;
+  totalDebeContabilidad: number;
+  totalHaberContabilidad: number;
+  saldoContabilidad: number;
+
+  produccionPlanificada: number;
   produccionReal: number;
+  produccionRechazada: number;
   cumplimientoProduccion: number;
+  ordenesProduccion: number;
 }
 
-export interface DashboardAreaSummary {
-  areaId: number;
-  area: string;
+export interface DashboardPeriodoMes {
+  anio: number;
+  mes: number;
+}
 
-  trabajadores: number;
-  costoRemuneraciones: number;
-  horasExtras: number;
-  compras: number;
-  gastosContables: number;
-  produccion?: number;
+export interface DashboardPeriodos {
+  asistencia: string | null;
+  remuneraciones: string | null;
+  compras: DashboardPeriodoMes | null;
+  contabilidad: DashboardPeriodoMes | null;
+  produccion: DashboardPeriodoMes | null;
+}
+
+export interface DashboardCobertura {
+  dominio: string;
+  fechaDesde: string | null;
+  fechaHasta: string | null;
+  registros: number;
 }
 
 export interface DashboardResumen {
   kpis: DashboardKpis;
-  evolucionMensual: MonthlyValue[];
-  principalesCentrosCosto: CategoryValue[];
-  resumenPorArea: DashboardAreaSummary[];
+  periodos: DashboardPeriodos;
+  cobertura: DashboardCobertura[];
+  advertencias: string[];
 }
