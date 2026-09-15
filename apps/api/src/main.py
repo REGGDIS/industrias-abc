@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.core.database import get_connection
+from src.routers.asistencia import router as asistencia_router
 from src.routers.catalogos import router as catalogos_router
 from src.routers.rrhh import router as rrhh_router
 
@@ -47,3 +48,4 @@ def health():
 
 app.include_router(catalogos_router)
 app.include_router(rrhh_router)
+app.include_router(asistencia_router)

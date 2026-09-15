@@ -31,7 +31,7 @@ import {
   DataTable,
   type DataTableColumn,
 } from '../components/tables/DataTable';
-import { asistenciaMockService } from '../services/mock/asistencia.mock.service';
+import { asistenciaService } from '../services/asistencia.service';
 import type {
   AsistenciaDetalle,
   AsistenciaDetalleResponse,
@@ -127,8 +127,8 @@ export function AsistenciaPage() {
     let active = true;
 
     Promise.all([
-      asistenciaMockService.getResumen(filters),
-      asistenciaMockService.getDetalle(filters),
+      asistenciaService.getResumen(filters),
+      asistenciaService.getDetalle(filters),
     ]).then(([summaryResult, detailResult]) => {
       if (!active) {
         return;
@@ -175,8 +175,23 @@ export function AsistenciaPage() {
         <AlertCard
           tone="info"
           title="Sin registros de asistencia"
-          description="No existen registros mock para la combinación de período, área y trabajador seleccionada."
+          description="No existen registros de asistencia para la combinación de período, área y trabajador seleccionada."
         />
+      ) : null}
+
+      {summary?.calidadDatos?.coberturaParcial ? (
+        <div style={{ marginBottom: '18px' }}>
+          <AlertCard
+          tone="warning"
+          title="Cobertura parcial de asistencia"
+          description={`Los registros disponibles cubren ${summary.calidadDatos.trabajadoresConAsistencia} de ${summary.calidadDatos.totalTrabajadoresPeriodo} trabajadores (${summary.calidadDatos.porcentajeCobertura?.toLocaleString(
+            'es-CL',
+            {
+              maximumFractionDigits: 1,
+            },
+          )} %). Los indicadores de asistencia deben interpretarse sobre esta muestra y no como resultados globales de toda la dotación.`}
+          />
+        </div>
       ) : null}
 
       {summary && detail && hasData ? (
@@ -229,13 +244,21 @@ export function AsistenciaPage() {
 
             <KpiCard
               title="Ausentismo"
-              value={`${summary.kpis.ausentismo.toLocaleString(
-                'es-CL',
-                {
-                  maximumFractionDigits: 1,
-                },
-              )} %`}
-              helper="sobre jornadas esperadas"
+              value={
+                summary.kpis.ausentismo === null
+                  ? 'Sin datos'
+                  : `${summary.kpis.ausentismo.toLocaleString(
+                      'es-CL',
+                      {
+                        maximumFractionDigits: 1,
+                      },
+                    )} %`
+              }
+              helper={
+                summary.calidadDatos?.datosDisponibles
+                  ? 'sobre jornadas observadas'
+                  : 'sin datos para el período'
+              }
               icon={Gauge}
             />
           </div>
@@ -393,7 +416,7 @@ export function AsistenciaPage() {
               columns={columns}
               rows={detail.items}
               getRowKey={(row) =>
-                `${row.empleadoId}-${row.fecha}`
+                `${row.trabajadorId}-${row.fecha}`
               }
             />
           </ChartCard>

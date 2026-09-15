@@ -37,8 +37,8 @@ function filterRecords(
     }
 
     if (
-      filters.empleadoId &&
-      record.empleadoId !== filters.empleadoId
+      filters.trabajadorId &&
+      String(record.empleadoId) !== filters.trabajadorId
     ) {
       return false;
     }
@@ -212,7 +212,8 @@ export class AsistenciaMockService
       records
         .slice(0, 20)
         .map((record) => ({
-          empleadoId: record.empleadoId,
+          asistenciaId: `${record.empleadoId}-${record.fecha}`,
+          trabajadorId: String(record.empleadoId),
           empleado: record.empleado,
           fecha: record.fecha,
           area: record.area,
