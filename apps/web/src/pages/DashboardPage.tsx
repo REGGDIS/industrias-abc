@@ -1,154 +1,258 @@
 import {
   useEffect,
-  useMemo,
   useState,
 } from 'react';
+
 import {
+  Activity,
   Banknote,
-  BarChart3,
+  Boxes,
   Clock3,
   Factory,
   ReceiptText,
   ShoppingCart,
-  UserCheck,
   Users,
 } from 'lucide-react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 
 import { ChartCard } from '../components/charts/ChartCard';
 import { AlertCard } from '../components/feedback/AlertCard';
-import { FilterBar } from '../components/filters/FilterBar';
 import { KpiCard } from '../components/kpi/KpiCard';
 import {
   DataTable,
   type DataTableColumn,
 } from '../components/tables/DataTable';
-import { dashboardMockService } from '../services/mock/dashboard.mock.service';
+
+import { dashboardService } from '../services/dashboard.service';
+
 import type {
-  DashboardAreaSummary,
+  DashboardCobertura,
+  DashboardPeriodoMes,
   DashboardResumen,
 } from '../types/dashboard';
-import type { BiFilters } from '../types/filters';
 
-const moneyFormatter = new Intl.NumberFormat('es-CL', {
-  style: 'currency',
-  currency: 'CLP',
-  maximumFractionDigits: 0,
-});
 
-const numberFormatter = new Intl.NumberFormat('es-CL');
+const numberFormatter =
+  new Intl.NumberFormat('es-CL');
 
-function formatMoney(value: number) {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toLocaleString(
-      'es-CL',
-      { maximumFractionDigits: 1 },
-    )} mil MM`;
-  }
+const decimalFormatter =
+  new Intl.NumberFormat(
+    'es-CL',
+    {
+      maximumFractionDigits: 2,
+    },
+  );
 
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toLocaleString(
-      'es-CL',
-      { maximumFractionDigits: 1 },
-    )} MM`;
-  }
+const moneyFormatter =
+  new Intl.NumberFormat(
+    'es-CL',
+    {
+      style: 'currency',
+      currency: 'CLP',
+      maximumFractionDigits: 0,
+    },
+  );
 
+
+const monthNames = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
+
+
+function formatMoney(
+  value: number,
+) {
   return moneyFormatter.format(value);
 }
 
-function formatAxisMoney(value: number) {
-  if (value >= 1_000_000) {
-    return `${Math.round(value / 1_000_000)} MM`;
+
+function formatDate(
+  value: string | null,
+) {
+  if (!value) {
+    return 'Sin dato';
   }
 
-  return numberFormatter.format(value);
+  const parts = value
+    .split('-')
+    .map(Number);
+
+  if (parts.length !== 3) {
+    return value;
+  }
+
+  const [year, month, day] = parts;
+
+  return `${day} ${
+    monthNames[month - 1] ?? month
+  } ${year}`;
 }
 
-const columns: DataTableColumn<DashboardAreaSummary>[] = [
-  {
-    key: 'area',
-    label: 'Área',
-    render: (row) => row.area,
-  },
-  {
-    key: 'trabajadores',
-    label: 'Trabajadores',
-    align: 'right',
-    render: (row) =>
-      numberFormatter.format(row.trabajadores),
-  },
-  {
-    key: 'remuneraciones',
-    label: 'Remuneraciones',
-    align: 'right',
-    render: (row) =>
-      formatMoney(row.costoRemuneraciones),
-  },
-  {
-    key: 'horasExtras',
-    label: 'Horas extra',
-    align: 'right',
-    render: (row) =>
-      `${numberFormatter.format(row.horasExtras)} h`,
-  },
-  {
-    key: 'compras',
-    label: 'Compras',
-    align: 'right',
-    render: (row) => formatMoney(row.compras),
-  },
-  {
-    key: 'gastos',
-    label: 'Gastos',
-    align: 'right',
-    render: (row) =>
-      formatMoney(row.gastosContables),
-  },
-];
+
+function formatMonth(
+  period: DashboardPeriodoMes | null,
+) {
+  if (!period) {
+    return 'Sin dato';
+  }
+
+  return `${
+    monthNames[period.mes - 1]
+      ?? period.mes
+  } ${period.anio}`;
+}
+
+
+function domainLabel(
+  domain: string,
+) {
+  const labels:
+    Record<string, string> = {
+      ASISTENCIA: 'Asistencia',
+      COMPRAS: 'Compras',
+      CONSUMO_INSUMO:
+        'Consumo de insumos',
+      CONTABILIDAD:
+        'Contabilidad',
+      PRODUCCION:
+        'Producción',
+      REMUNERACIONES:
+        'Remuneraciones',
+    };
+
+  return labels[domain] ?? domain;
+}
+
+
+const coverageColumns:
+  DataTableColumn<DashboardCobertura>[] = [
+    {
+      key: 'dominio',
+      label: 'Dominio',
+      render: (row) =>
+        domainLabel(row.dominio),
+    },
+    {
+      key: 'fechaDesde',
+      label: 'Desde',
+      render: (row) => {
+        if (
+          row.dominio === 'REMUNERACIONES'
+          && row.fechaDesde
+        ) {
+          const [
+            year,
+            month,
+          ] = row.fechaDesde
+            .split('-')
+            .map(Number);
+
+          return `${
+            monthNames[month - 1]
+              ?? month
+          } ${year}`;
+        }
+
+        return formatDate(
+          row.fechaDesde,
+        );
+      },
+    },
+    {
+      key: 'fechaHasta',
+      label: 'Hasta',
+      render: (row) => {
+        if (
+          row.dominio === 'REMUNERACIONES'
+          && row.fechaHasta
+        ) {
+          const [
+            year,
+            month,
+          ] = row.fechaHasta
+            .split('-')
+            .map(Number);
+
+          return `${
+            monthNames[month - 1]
+              ?? month
+          } ${year}`;
+        }
+
+        return formatDate(
+          row.fechaHasta,
+        );
+      },
+    },
+    {
+      key: 'registros',
+      label: 'Registros',
+      align: 'right',
+      render: (row) =>
+        numberFormatter.format(
+          row.registros,
+        ),
+    },
+  ];
+
 
 export function DashboardPage() {
-  const [filters, setFilters] = useState<BiFilters>({
-    anio: 2026,
-  });
+  const [
+    data,
+    setData,
+  ] = useState<
+    DashboardResumen | null
+  >(null);
 
-  const [data, setData] =
-    useState<DashboardResumen | null>(null);
+  const [
+    error,
+    setError,
+  ] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     let active = true;
 
-    dashboardMockService
-      .getResumen(filters)
+    setError(null);
+
+    dashboardService
+      .getResumen()
       .then((result) => {
         if (active) {
           setData(result);
         }
+      })
+      .catch((caughtError) => {
+        if (!active) {
+          return;
+        }
+
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : (
+                'No fue posible cargar '
+                + 'el Dashboard.'
+              ),
+        );
       });
 
     return () => {
       active = false;
     };
-  }, [filters]);
+  }, []);
 
-  const hasData = Boolean(
-    data && data.resumenPorArea.length > 0,
-  );
-
-  const centerCostData = useMemo(
-    () =>
-      data?.principalesCentrosCosto.slice(0, 5) ?? [],
-    [data],
-  );
 
   return (
     <section className="module-page">
@@ -158,220 +262,248 @@ export function DashboardPage() {
             Industrias ABC
           </p>
 
-          <h1>Dashboard Ejecutivo</h1>
+          <h1>
+            Dashboard Ejecutivo
+          </h1>
 
           <p>
-            Visión consolidada de personas, costos,
-            compras, contabilidad y producción.
+            Visión ejecutiva de los
+            principales indicadores
+            disponibles en el Data
+            Warehouse.
           </p>
         </div>
       </div>
 
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-      />
 
-      {!hasData && data ? (
+      {error ? (
         <AlertCard
-          tone="info"
-          title="Sin información para los filtros seleccionados"
-          description="No existen registros mock para esta combinación. Prueba otro período, área o centro de costo."
+          tone="danger"
+          title="No fue posible cargar el Dashboard"
+          description={error}
         />
       ) : null}
 
-      {data && hasData ? (
+
+      {data ? (
         <>
+          <div
+            style={{
+              marginBottom: '1rem',
+            }}
+          >
+            <AlertCard
+              tone="info"
+              title="Períodos de información"
+              description={
+                'Cada indicador utiliza '
+                + 'el último período real '
+                + 'disponible de su dominio. '
+                + 'Los KPI no representan '
+                + 'un único corte temporal.'
+              }
+            />
+          </div>
+
+
           <div className="kpi-grid">
             <KpiCard
-              title="Total trabajadores"
-              value={numberFormatter.format(
-                data.kpis.totalTrabajadores,
-              )}
-              helper="dotación último período"
+              title="Trabajadores remunerados"
+              value={
+                numberFormatter.format(
+                  data.kpis
+                    .trabajadoresActivos,
+                )
+              }
+              helper={
+                'Remuneraciones · '
+                + (
+                  data.periodos.remuneraciones
+                    ? `${
+                        monthNames[
+                          Number(
+                            data.periodos.remuneraciones
+                              .split('-')[1],
+                          ) - 1
+                        ]
+                      } ${
+                        data.periodos.remuneraciones
+                          .split('-')[0]
+                      }`
+                    : 'Sin dato'
+                )
+              }
               icon={Users}
             />
 
-            <KpiCard
-              title="Trabajadores activos"
-              value={numberFormatter.format(
-                data.kpis.trabajadoresActivos,
-              )}
-              helper="último período disponible"
-              icon={UserCheck}
-            />
-
-            <KpiCard
-              title="Costo remuneraciones"
-              value={formatMoney(
-                data.kpis.costoRemuneraciones,
-              )}
-              helper="período filtrado"
-              icon={Banknote}
-            />
 
             <KpiCard
               title="Horas extra"
-              value={`${numberFormatter.format(
-                data.kpis.horasExtras,
-              )} h`}
-              helper="período filtrado"
+              value={
+                `${decimalFormatter.format(
+                  data.kpis
+                    .horasExtrasAsistencia,
+                )} h`
+              }
+              helper={
+                'Asistencia · '
+                + formatDate(
+                  data.periodos
+                    .asistencia,
+                )
+              }
               icon={Clock3}
             />
 
+
+            <KpiCard
+              title="Costo remuneraciones"
+              value={
+                formatMoney(
+                  data.kpis
+                    .costoRemuneraciones,
+                )
+              }
+              helper={
+                'Último período · '
+                + (
+                  data.periodos.remuneraciones
+                    ? `${
+                        monthNames[
+                          Number(
+                            data.periodos.remuneraciones
+                              .split('-')[1],
+                          ) - 1
+                        ]
+                      } ${
+                        data.periodos.remuneraciones
+                          .split('-')[0]
+                      }`
+                    : 'Sin dato'
+                )
+              }
+              icon={Banknote}
+            />
+
+
             <KpiCard
               title="Compras"
-              value={formatMoney(
-                data.kpis.totalCompras,
-              )}
-              helper="período filtrado"
+              value={
+                formatMoney(
+                  data.kpis
+                    .totalCompras,
+                )
+              }
+              helper={
+                'Último mes · '
+                + formatMonth(
+                  data.periodos.compras,
+                )
+              }
               icon={ShoppingCart}
             />
 
+
             <KpiCard
-              title="Gastos contables"
-              value={formatMoney(
-                data.kpis.gastosContables,
-              )}
-              helper="período filtrado"
+              title="Movimientos contables"
+              value={
+                numberFormatter.format(
+                  data.kpis
+                    .movimientosContables,
+                )
+              }
+              helper={
+                'Último mes · '
+                + formatMonth(
+                  data.periodos
+                    .contabilidad,
+                )
+              }
               icon={ReceiptText}
             />
 
+
             <KpiCard
               title="Producción real"
-              value={numberFormatter.format(
-                data.kpis.produccionReal,
-              )}
-              helper="unidades producidas"
+              value={
+                numberFormatter.format(
+                  data.kpis
+                    .produccionReal,
+                )
+              }
+              helper={
+                'Último mes · '
+                + formatMonth(
+                  data.periodos
+                    .produccion,
+                )
+              }
               icon={Factory}
             />
 
+
             <KpiCard
               title="Cumplimiento producción"
-              value={`${data.kpis.cumplimientoProduccion.toLocaleString(
-                'es-CL',
-                {
-                  maximumFractionDigits: 1,
-                },
-              )} %`}
-              helper="real versus plan"
-              icon={BarChart3}
+              value={
+                `${decimalFormatter.format(
+                  data.kpis
+                    .cumplimientoProduccion,
+                )} %`
+              }
+              helper="Producido versus planificado"
+              icon={Activity}
+            />
+
+
+            <KpiCard
+              title="Órdenes de producción"
+              value={
+                numberFormatter.format(
+                  data.kpis
+                    .ordenesProduccion,
+                )
+              }
+              helper={
+                'Último mes · '
+                + formatMonth(
+                  data.periodos
+                    .produccion,
+                )
+              }
+              icon={Boxes}
             />
           </div>
 
-          <div className="dashboard-two-columns">
-            <ChartCard
-              title="Evolución mensual de costos"
-              description="Remuneraciones, compras y gastos contables consolidados."
-            >
-              <div className="chart-demo">
-                <ResponsiveContainer
-                  width="100%"
-                  height={280}
-                >
-                  <LineChart
-                    data={data.evolucionMensual}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                    />
-
-                    <XAxis
-                      dataKey="label"
-                      tickLine={false}
-                      axisLine={false}
-                    />
-
-                    <YAxis
-                      tickFormatter={formatAxisMoney}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-
-                    <Tooltip
-                      formatter={(value) =>
-                        formatMoney(Number(value))
-                      }
-                    />
-
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke="var(--primary)"
-                      strokeWidth={3}
-                      dot={{ r: 3 }}
-                      activeDot={{ r: 5 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartCard>
-
-            <ChartCard
-              title="Principales centros de costo"
-              description="Costo integrado del período filtrado."
-            >
-              <div className="chart-demo">
-                <ResponsiveContainer
-                  width="100%"
-                  height={280}
-                >
-                  <BarChart
-                    data={centerCostData}
-                    layout="vertical"
-                    margin={{
-                      left: 25,
-                      right: 20,
-                    }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      horizontal={false}
-                    />
-
-                    <XAxis
-                      type="number"
-                      tickFormatter={formatAxisMoney}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-
-                    <YAxis
-                      type="category"
-                      dataKey="label"
-                      width={135}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-
-                    <Tooltip
-                      formatter={(value) =>
-                        formatMoney(Number(value))
-                      }
-                    />
-
-                    <Bar
-                      dataKey="value"
-                      fill="var(--primary)"
-                      radius={[0, 5, 5, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartCard>
-          </div>
 
           <ChartCard
-            title="Resumen por área"
-            description="Indicadores integrados para el período seleccionado."
+            title="Cobertura de datos por dominio"
+            description={
+              'Rango temporal y cantidad '
+              + 'de registros actualmente '
+              + 'disponibles en el DW.'
+            }
           >
             <DataTable
-              columns={columns}
-              rows={data.resumenPorArea}
-              getRowKey={(row) => row.areaId}
+              columns={coverageColumns}
+              rows={data.cobertura}
+              getRowKey={(row) =>
+                row.dominio
+              }
             />
           </ChartCard>
+
+
+          {data.advertencias.length > 0 ? (
+            <AlertCard
+              tone="warning"
+              title="Consideraciones del Dashboard"
+              description={
+                data.advertencias.join(
+                  ' · ',
+                )
+              }
+            />
+          ) : null}
         </>
       ) : null}
     </section>
