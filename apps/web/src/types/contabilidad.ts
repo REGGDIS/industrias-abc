@@ -6,7 +6,7 @@ export interface ContabilidadKpis {
   haberTotal: number;
   saldo: number;
   mayorCentroCosto?: string;
-  variacionMensual?: number;
+  variacionMensual?: number | null;
 }
 
 export interface MovimientoContable {
