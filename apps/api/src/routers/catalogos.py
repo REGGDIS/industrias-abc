@@ -8,6 +8,7 @@ from src.repositories.catalogos_repository import (
     obtener_periodos_rrhh,
     obtener_periodos_asistencia,
     obtener_periodos_contratos,
+    obtener_periodos_remuneraciones,
 )
 
 
@@ -46,10 +47,13 @@ def listar_periodos(
     if dominio_normalizado == "contratos":
         return obtener_periodos_contratos()
 
+    if dominio_normalizado == "remuneraciones":
+        return obtener_periodos_remuneraciones()
+
     raise HTTPException(
         status_code=400,
         detail=(
             "Dominio no soportado. "
-            "Use rrhh, asistencia o contratos."
+            "Use rrhh, asistencia, contratos o remuneraciones."
         ),
     )

@@ -30,7 +30,7 @@ import {
   DataTable,
   type DataTableColumn,
 } from '../components/tables/DataTable';
-import { remuneracionesMockService } from '../services/mock/remuneraciones.mock.service';
+import { remuneracionesService } from '../services/remuneraciones.service';
 import type { BiFilters } from '../types/filters';
 import type {
   RemuneracionDetalle,
@@ -89,11 +89,11 @@ const columns: DataTableColumn<RemuneracionDetalle>[] = [
       )} h`,
   },
   {
-    key: 'bonos',
-    label: 'Bonos',
+    key: 'sueldoLiquido',
+    label: 'Sueldo líquido',
     align: 'right',
     render: (row) =>
-      formatCurrency(row.bonos),
+      formatCurrency(row.sueldoLiquido),
   },
   {
     key: 'descuentos',
@@ -131,10 +131,10 @@ export function RemuneracionesPage() {
     let active = true;
 
     Promise.all([
-      remuneracionesMockService.getResumen(
+      remuneracionesService.getResumen(
         filters,
       ),
-      remuneracionesMockService.getDetalle(
+      remuneracionesService.getDetalle(
         filters,
       ),
     ]).then(
@@ -171,7 +171,7 @@ export function RemuneracionesPage() {
 
           <p>
             Costos laborales, horas
-            extra, bonificaciones y
+            extra, sueldo líquido y
             costo empresa.
           </p>
         </div>
@@ -182,13 +182,23 @@ export function RemuneracionesPage() {
         onChange={setFilters}
       />
 
+      {summary?.calidadDatos?.coberturaParcial ? (
+        <div style={{ marginBottom: '18px' }}>
+          <AlertCard
+            tone="warning"
+            title="Cobertura parcial de remuneraciones"
+            description={`Existen remuneraciones para ${summary.calidadDatos.trabajadoresConRemuneracion} de ${summary.calidadDatos.totalTrabajadoresRrhh} trabajadores (${summary.calidadDatos.porcentajeCobertura}%). Los indicadores corresponden solo a los trabajadores con liquidación disponible en el período.`}
+          />
+        </div>
+      ) : null}
+
       {summary &&
       detail &&
       !hasData ? (
         <AlertCard
           tone="info"
           title="Sin registros de remuneraciones"
-          description="No existen registros mock para la combinación de período, área y trabajador seleccionada."
+          description="No existen registros para la combinación de período, área y trabajador seleccionada."
         />
       ) : null}
 
@@ -216,20 +226,18 @@ export function RemuneracionesPage() {
             />
 
             <KpiCard
-              title="Costo horas extra"
-              value={formatCurrency(
-                summary.kpis
-                  .costoHorasExtras,
-              )}
+              title="Horas extra"
+              value={`${numberFormatter.format(
+                summary.kpis.horasExtras,
+              )} h`}
               helper="período seleccionado"
               icon={Clock3}
             />
 
             <KpiCard
-              title="Bonificaciones"
+              title="Sueldo líquido"
               value={formatCurrency(
-                summary.kpis
-                  .bonificaciones,
+                summary.kpis.sueldoLiquido,
               )}
               helper="total acumulado"
               icon={Coins}
@@ -271,8 +279,10 @@ export function RemuneracionesPage() {
                     }
                     layout="vertical"
                     margin={{
-                      left: 30,
+                      top: 5,
                       right: 25,
+                      bottom: 28,
+                      left: 30,
                     }}
                   >
                     <CartesianGrid
@@ -281,7 +291,7 @@ export function RemuneracionesPage() {
                     />
 
                     <XAxis
-                      type="number"
+                      type="number" height={30}
                       tickFormatter={(value) =>
                         `${Math.round(
                           Number(value) /
@@ -337,8 +347,10 @@ export function RemuneracionesPage() {
                     }
                     layout="vertical"
                     margin={{
-                      left: 30,
+                      top: 5,
                       right: 25,
+                      bottom: 28,
+                      left: 30,
                     }}
                   >
                     <CartesianGrid
@@ -347,7 +359,7 @@ export function RemuneracionesPage() {
                     />
 
                     <XAxis
-                      type="number"
+                      type="number" height={30}
                     />
 
                     <YAxis
@@ -389,6 +401,12 @@ export function RemuneracionesPage() {
                   data={
                     summary.evolucionMensual
                   }
+                  margin={{
+                    top: 10,
+                    right: 25,
+                    bottom: 28,
+                    left: 10,
+                  }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -396,7 +414,7 @@ export function RemuneracionesPage() {
                   />
 
                   <XAxis
-                    dataKey="label"
+                    dataKey="label" height={34}
                     tickLine={false}
                     axisLine={false}
                   />
@@ -433,13 +451,13 @@ export function RemuneracionesPage() {
 
           <ChartCard
             title="Detalle de remuneraciones"
-            description={`Primeros ${detail.items.length} registros de ${detail.pagination.total} liquidaciones mock filtradas.`}
+            description={`Primeros ${detail.items.length} registros de ${detail.pagination.total} liquidaciones filtradas.`}
           >
             <DataTable
               columns={columns}
               rows={detail.items}
               getRowKey={(row) =>
-                `${row.empleadoId}-${row.periodo}`
+                `${row.trabajadorId}-${row.periodo}`
               }
             />
           </ChartCard>

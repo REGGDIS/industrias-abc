@@ -243,3 +243,79 @@ def obtener_periodos_contratos() -> dict:
         "fechaMaximaDisponible":
             hoy.isoformat(),
     }
+
+def obtener_periodos_remuneraciones() -> dict:
+    sql = """
+        SELECT DISTINCT periodo
+        FROM dw.fact_remuneraciones
+        ORDER BY periodo;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+
+    if not rows:
+        return {
+            "anios": [],
+            "meses": [],
+            "ultimoPeriodoDisponible": None,
+            "fechaMaximaDisponible": None,
+        }
+
+    periodos = [
+        row["periodo"].strip()
+        for row in rows
+    ]
+
+    ultimo = periodos[-1]
+    ultimo_anio, ultimo_mes = (
+        int(value)
+        for value in ultimo.split("-")
+    )
+
+    nombres_meses = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+    ]
+
+    anios = sorted({
+        int(periodo[:4])
+        for periodo in periodos
+    })
+
+    meses_disponibles = sorted({
+        int(periodo[5:7])
+        for periodo in periodos
+        if int(periodo[:4]) == ultimo_anio
+    })
+
+    meses = [
+        {
+            "id": mes,
+            "label": nombres_meses[mes - 1],
+        }
+        for mes in meses_disponibles
+    ]
+
+    return {
+        "anios": anios,
+        "meses": meses,
+        "ultimoPeriodoDisponible": {
+            "anio": ultimo_anio,
+            "mes": ultimo_mes,
+        },
+        "fechaMaximaDisponible":
+            f"{ultimo_anio:04d}-{ultimo_mes:02d}-01",
+    }
