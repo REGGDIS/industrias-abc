@@ -320,7 +320,9 @@ def obtener_periodos_remuneraciones() -> dict:
             f"{ultimo_anio:04d}-{ultimo_mes:02d}-01",
     }
 
-def obtener_periodos_contabilidad() -> dict:
+def obtener_periodos_contabilidad(
+    anio: int | None = None,
+) -> dict:
     sql = """
         SELECT DISTINCT
             df.anio,
@@ -355,10 +357,6 @@ def obtener_periodos_contabilidad() -> dict:
             "fechaMaximaDisponible": None,
         }
 
-    ultimo = rows[-1]
-    ultimo_anio = int(ultimo["anio"])
-    ultimo_mes = int(ultimo["mes"])
-
     nombres_meses = [
         "Enero",
         "Febrero",
@@ -379,19 +377,39 @@ def obtener_periodos_contabilidad() -> dict:
         for row in rows
     })
 
-    meses_disponibles = sorted({
-        int(row["mes"])
+    anio_objetivo = (
+        anio
+        if anio is not None
+        else int(rows[-1]["anio"])
+    )
+
+    periodos_anio = [
+        row
         for row in rows
-        if int(row["anio"]) == ultimo_anio
-    })
+        if int(row["anio"]) == anio_objetivo
+    ]
 
     meses = [
         {
-            "id": mes,
-            "label": nombres_meses[mes - 1],
+            "id": int(row["mes"]),
+            "label":
+                nombres_meses[
+                    int(row["mes"]) - 1
+                ],
         }
-        for mes in meses_disponibles
+        for row in periodos_anio
     ]
+
+    ultimo_periodo = (
+        {
+            "anio": anio_objetivo,
+            "mes": int(
+                periodos_anio[-1]["mes"]
+            ),
+        }
+        if periodos_anio
+        else None
+    )
 
     fecha_maxima = (
         fecha_row["fecha_maxima"]
@@ -402,10 +420,8 @@ def obtener_periodos_contabilidad() -> dict:
     return {
         "anios": anios,
         "meses": meses,
-        "ultimoPeriodoDisponible": {
-            "anio": ultimo_anio,
-            "mes": ultimo_mes,
-        },
+        "ultimoPeriodoDisponible":
+            ultimo_periodo,
         "fechaMaximaDisponible": (
             fecha_maxima.isoformat()
             if fecha_maxima

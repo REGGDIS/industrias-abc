@@ -52,6 +52,7 @@ def listar_cuentas_contables():
 @router.get("/periodos")
 def listar_periodos(
     dominio: str = Query(...),
+    anio: int | None = Query(None),
 ):
     dominio_normalizado = dominio.lower()
 
@@ -68,7 +69,9 @@ def listar_periodos(
         return obtener_periodos_remuneraciones()
 
     if dominio_normalizado == "contabilidad":
-        return obtener_periodos_contabilidad()
+        return obtener_periodos_contabilidad(
+            anio=anio,
+        )
 
     raise HTTPException(
         status_code=400,

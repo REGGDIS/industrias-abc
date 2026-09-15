@@ -6,6 +6,7 @@ import {
 } from '../mocks/catalogs.mock';
 import { cuentasGastoMock } from '../mocks/contabilidad.mock';
 import type { SelectOption } from '../types/common';
+import type { BiFilters } from '../types/filters';
 
 interface PeriodosApiResponse {
   anios: number[];
@@ -51,15 +52,20 @@ async function fetchJson<T>(
   return response.json() as Promise<T>;
 }
 
-async function getApiCatalogos():
-  Promise<ContabilidadCatalogos> {
+async function getApiCatalogos(
+  filters: BiFilters,
+): Promise<ContabilidadCatalogos> {
   const [
     periodos,
     centrosResponse,
     cuentasResponse,
   ] = await Promise.all([
     fetchJson<PeriodosApiResponse>(
-      '/bi/catalogos/periodos?dominio=contabilidad',
+      `/bi/catalogos/periodos?dominio=contabilidad${
+        filters.anio
+          ? `&anio=${filters.anio}`
+          : ''
+      }`,
     ),
     fetchJson<ItemsResponse>(
       '/bi/catalogos/centros-costo',
@@ -104,10 +110,11 @@ function getMockCatalogos():
   };
 }
 
-export async function getContabilidadCatalogos():
-  Promise<ContabilidadCatalogos> {
+export async function getContabilidadCatalogos(
+  filters: BiFilters,
+): Promise<ContabilidadCatalogos> {
   if (runtimeConfig.dataMode === 'api') {
-    return getApiCatalogos();
+    return getApiCatalogos(filters);
   }
 
   return getMockCatalogos();

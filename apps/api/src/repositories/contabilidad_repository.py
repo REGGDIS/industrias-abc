@@ -544,7 +544,7 @@ def obtener_movimientos_contabilidad(
             cursor.execute(
                 f"""
                 SELECT
-                    fc.contabilidad_fact_key,
+                    fc.movimiento_id_origen,
                     df.fecha,
                     dcc.codigo_cuenta,
                     dcc.nombre_cuenta,
@@ -587,7 +587,7 @@ def obtener_movimientos_contabilidad(
             "movimientoId":
                 int(
                     row[
-                        "contabilidad_fact_key"
+                        "movimiento_id_origen"
                     ]
                 ),
             "fecha":

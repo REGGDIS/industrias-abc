@@ -33,7 +33,7 @@ export function ContabilidadFilterBar({
   useEffect(() => {
     let active = true;
 
-    getContabilidadCatalogos().then(
+    getContabilidadCatalogos(filters).then(
       (catalogos) => {
         if (!active) {
           return;
@@ -70,7 +70,10 @@ export function ContabilidadFilterBar({
     return () => {
       active = false;
     };
-  }, [filters.mes]);
+  }, [
+    filters.anio,
+    filters.mes,
+  ]);
 
   function updateFilter(
     key:
@@ -80,12 +83,18 @@ export function ContabilidadFilterBar({
       | 'cuentaContableId',
     rawValue: string,
   ) {
+    const value =
+      rawValue === ''
+        ? undefined
+        : Number(rawValue);
+
     onChange({
       ...filters,
-      [key]:
-        rawValue === ''
+      [key]: value,
+      mes:
+        key === 'anio'
           ? undefined
-          : Number(rawValue),
+          : filters.mes,
     });
   }
 
