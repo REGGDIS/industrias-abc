@@ -6,6 +6,7 @@ from src.repositories.catalogos_repository import (
     obtener_areas,
     obtener_cargos,
     obtener_periodos_rrhh,
+    obtener_periodos_asistencia,
 )
 
 
@@ -33,10 +34,18 @@ def listar_cargos():
 def listar_periodos(
     dominio: str = Query(...),
 ):
-    if dominio.lower() != "rrhh":
-        raise HTTPException(
-            status_code=400,
-            detail="Por ahora solo está habilitado dominio=rrhh.",
-        )
+    dominio_normalizado = dominio.lower()
 
-    return obtener_periodos_rrhh()
+    if dominio_normalizado == "rrhh":
+        return obtener_periodos_rrhh()
+
+    if dominio_normalizado == "asistencia":
+        return obtener_periodos_asistencia()
+
+    raise HTTPException(
+        status_code=400,
+        detail=(
+            "Dominio no soportado. "
+            "Use rrhh o asistencia."
+        ),
+    )

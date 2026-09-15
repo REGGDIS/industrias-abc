@@ -9,6 +9,7 @@ export interface BiFilters {
   centroCostoId?: number;
 
   empleadoId?: number;
+  trabajadorId?: string;
   cargoId?: number;
 
   proveedorId?: number;

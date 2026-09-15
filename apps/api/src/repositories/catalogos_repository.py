@@ -85,3 +85,89 @@ def obtener_periodos_rrhh() -> dict:
         },
         "fechaMaximaDisponible": fecha_maxima.isoformat(),
     }
+
+def obtener_periodos_asistencia() -> dict:
+    sql = """
+        SELECT
+            MIN(df.fecha) AS fecha_minima,
+            MAX(df.fecha) AS fecha_maxima
+        FROM dw.fact_asistencia fa
+        JOIN dw.dim_fecha df
+          ON df.fecha_key = fa.fecha_key;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            row = cursor.fetchone()
+
+    fecha_minima = row["fecha_minima"]
+    fecha_maxima = row["fecha_maxima"]
+
+    if fecha_minima is None or fecha_maxima is None:
+        return {
+            "anios": [],
+            "meses": [],
+            "ultimoPeriodoDisponible": None,
+            "fechaMaximaDisponible": None,
+        }
+
+    meses_nombres = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+    ]
+
+    sql_periodos = """
+        SELECT DISTINCT
+            df.anio,
+            df.mes
+        FROM dw.fact_asistencia fa
+        JOIN dw.dim_fecha df
+          ON df.fecha_key = fa.fecha_key
+        ORDER BY df.anio, df.mes;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql_periodos)
+            periodos = cursor.fetchall()
+
+    anios = sorted({
+        int(row["anio"])
+        for row in periodos
+    })
+
+    meses_disponibles = sorted({
+        int(row["mes"])
+        for row in periodos
+        if int(row["anio"]) == fecha_maxima.year
+    })
+
+    meses = [
+        {
+            "id": mes,
+            "label": meses_nombres[mes - 1],
+        }
+        for mes in meses_disponibles
+    ]
+
+    return {
+        "anios": anios,
+        "meses": meses,
+        "ultimoPeriodoDisponible": {
+            "anio": fecha_maxima.year,
+            "mes": fecha_maxima.month,
+        },
+        "fechaMaximaDisponible":
+            fecha_maxima.isoformat(),
+    }
