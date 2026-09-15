@@ -14,6 +14,7 @@ from src.routers.compras import router as compras_router
 from src.routers.produccion import router as produccion_router
 from src.routers.dashboard import router as dashboard_router
 from src.routers.analisis import router as analisis_router
+from src.routers.calidad import router as calidad_router
 
 
 app = FastAPI(
@@ -63,3 +64,4 @@ app.include_router(compras_router)
 app.include_router(produccion_router)
 app.include_router(dashboard_router)
 app.include_router(analisis_router)
+app.include_router(calidad_router)
