@@ -467,3 +467,155 @@ def obtener_cuentas_contables() -> list[dict]:
         with connection.cursor() as cursor:
             cursor.execute(sql)
             return cursor.fetchall()
+
+
+def obtener_periodos_compras(
+    anio: int | None = None,
+) -> dict:
+    sql = """
+        SELECT DISTINCT
+            df.anio,
+            df.mes
+        FROM dw.fact_compras fc
+        JOIN dw.dim_fecha df
+          ON df.fecha_key = fc.fecha_emision_key
+        ORDER BY df.anio, df.mes;
+    """
+
+    sql_fecha_maxima = """
+        SELECT
+            MAX(df.fecha) AS fecha_maxima
+        FROM dw.fact_compras fc
+        JOIN dw.dim_fecha df
+          ON df.fecha_key = fc.fecha_emision_key;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+
+            cursor.execute(sql_fecha_maxima)
+            fecha_row = cursor.fetchone()
+
+    if not rows:
+        return {
+            "anios": [],
+            "meses": [],
+            "ultimoPeriodoDisponible": None,
+            "fechaMaximaDisponible": None,
+        }
+
+    nombres_meses = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+    ]
+
+    anios = sorted({
+        int(row["anio"])
+        for row in rows
+    })
+
+    anio_objetivo = (
+        anio
+        if anio is not None
+        else int(rows[-1]["anio"])
+    )
+
+    periodos_anio = [
+        row
+        for row in rows
+        if int(row["anio"]) == anio_objetivo
+    ]
+
+    meses = [
+        {
+            "id": int(row["mes"]),
+            "label":
+                nombres_meses[
+                    int(row["mes"]) - 1
+                ],
+        }
+        for row in periodos_anio
+    ]
+
+    ultimo_periodo = (
+        {
+            "anio": anio_objetivo,
+            "mes": int(
+                periodos_anio[-1]["mes"]
+            ),
+        }
+        if periodos_anio
+        else None
+    )
+
+    fecha_maxima = (
+        fecha_row["fecha_maxima"]
+        if fecha_row
+        else None
+    )
+
+    return {
+        "anios": anios,
+        "meses": meses,
+        "ultimoPeriodoDisponible":
+            ultimo_periodo,
+        "fechaMaximaDisponible": (
+            fecha_maxima.isoformat()
+            if fecha_maxima
+            else None
+        ),
+    }
+
+
+def obtener_proveedores_compras() -> list[dict]:
+    sql = """
+        SELECT DISTINCT
+            dp.proveedor_key AS id,
+            dp.rut_proveedor_normalizado AS codigo,
+            COALESCE(
+                dp.nombre_fantasia,
+                dp.razon_social
+            ) AS label
+        FROM dw.dim_proveedor dp
+        JOIN dw.fact_compras fc
+          ON fc.proveedor_key =
+             dp.proveedor_key
+        WHERE dp.proveedor_key > 0
+        ORDER BY label;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            return cursor.fetchall()
+
+
+def obtener_insumos_compras() -> list[dict]:
+    sql = """
+        SELECT DISTINCT
+            di.insumo_key AS id,
+            di.codigo_insumo AS codigo,
+            di.nombre_insumo AS label
+        FROM dw.dim_insumo di
+        JOIN dw.fact_compras fc
+          ON fc.insumo_key = di.insumo_key
+        WHERE di.insumo_key > 0
+        ORDER BY di.nombre_insumo;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            return cursor.fetchall()

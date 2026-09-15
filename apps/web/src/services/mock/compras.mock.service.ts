@@ -164,6 +164,11 @@ function toDetail(
     ordenCompraId:
       record.ordenCompraId,
 
+    numeroOc:
+      `OC-MOCK-${String(
+        record.ordenCompraId,
+      ).padStart(4, '0')}`,
+
     fecha: record.fecha,
 
     proveedor:
