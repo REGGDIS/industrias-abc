@@ -19,5 +19,11 @@ class Settings:
     dw_user: str = os.getenv("DW_DB_USER", "dw_user")
     dw_password: str = os.getenv("DW_DB_PASSWORD", "")
 
+    audit_host: str = os.getenv("AUDIT_DB_HOST", "localhost")
+    audit_port: int = int(os.getenv("AUDIT_DB_PORT", "5434"))
+    audit_name: str = os.getenv("AUDIT_DB_NAME", "rrhh")
+    audit_user: str = os.getenv("AUDIT_DB_USER", "postgres")
+    audit_password: str = os.getenv("AUDIT_DB_PASSWORD", "")
+
 
 settings = Settings()
