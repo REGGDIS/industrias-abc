@@ -152,14 +152,16 @@ function toDetail(
     String(record.mes);
 
   return {
-    empleadoId: record.empleadoId,
+    remuneracionId: record.empleadoId,
+    trabajadorId: String(record.empleadoId),
     empleado: record.empleado,
     area: record.area,
     periodo: `${monthName} ${record.anio}`,
     sueldoBase: record.sueldoBase,
     horasExtras:
       record.horasExtrasCantidad,
-    bonos: record.bonos,
+    totalHaberes: record.totalHaberes,
+    sueldoLiquido: record.liquidoEstimado,
     descuentos: record.descuentos,
     costoEmpresa:
       record.costoEmpresa,
@@ -179,17 +181,6 @@ export class RemuneracionesMockService
       records,
       (record) =>
         record.totalHaberes,
-    );
-
-    const costoHorasExtras = sum(
-      records,
-      (record) =>
-        record.costoHorasExtras,
-    );
-
-    const bonificaciones = sum(
-      records,
-      (record) => record.bonos,
     );
 
     const descuentos = sum(
@@ -217,17 +208,20 @@ export class RemuneracionesMockService
         costoTotal:
           Math.round(totalHaberes),
 
-        sueldoPromedio,
-
-        costoHorasExtras:
-          Math.round(
-            costoHorasExtras,
+        sueldoPromedio,        horasExtras: Math.round(
+          sum(
+            records,
+            (record) =>
+              record.horasExtrasCantidad,
           ),
-
-        bonificaciones:
-          Math.round(
-            bonificaciones,
+        ),
+        sueldoLiquido: Math.round(
+          sum(
+            records,
+            (record) =>
+              record.liquidoEstimado,
           ),
+        ),
 
         descuentos:
           Math.round(descuentos),
