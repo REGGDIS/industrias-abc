@@ -30,7 +30,7 @@ import {
   DataTable,
   type DataTableColumn,
 } from '../components/tables/DataTable';
-import { comprasMockService } from '../services/mock/compras.mock.service';
+import { comprasService } from '../services/compras.service';
 import type {
   CompraDetalle,
   ComprasDetalleResponse,
@@ -54,6 +54,33 @@ function formatCurrency(
   return currencyFormatter.format(value);
 }
 
+function formatAxisAmount(
+  rawValue: number | string,
+) {
+  const value = Number(rawValue);
+  const absoluteValue = Math.abs(value);
+
+  if (absoluteValue >= 1000000) {
+    return `${(
+      value / 1000000
+    ).toLocaleString('es-CL', {
+      maximumFractionDigits: 1,
+    })}M`;
+  }
+
+  if (absoluteValue >= 1000) {
+    return `${(
+      value / 1000
+    ).toLocaleString('es-CL', {
+      maximumFractionDigits: 1,
+    })} mil`;
+  }
+
+  return value.toLocaleString('es-CL', {
+    maximumFractionDigits: 0,
+  });
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(
     'es-CL',
@@ -67,9 +94,7 @@ const columns: DataTableColumn<CompraDetalle>[] = [
     key: 'orden',
     label: 'Orden',
     render: (row) =>
-      `OC-${String(
-        row.ordenCompraId,
-      ).padStart(4, '0')}`,
+      row.numeroOc,
   },
   {
     key: 'fecha',
@@ -132,10 +157,10 @@ export function ComprasPage() {
     let active = true;
 
     Promise.all([
-      comprasMockService.getResumen(
+      comprasService.getResumen(
         filters,
       ),
-      comprasMockService.getDetalle(
+      comprasService.getDetalle(
         filters,
       ),
     ]).then(
@@ -191,7 +216,7 @@ export function ComprasPage() {
         <AlertCard
           tone="info"
           title="Sin registros de compras"
-          description="No existen órdenes de compra mock para la combinación de período, proveedor e insumo seleccionada."
+          description="No existen órdenes de compra para la combinación de período, proveedor e insumo seleccionada."
         />
       ) : null}
 
@@ -253,12 +278,12 @@ export function ComprasPage() {
             />
 
             <KpiCard
-              title="Unidades adquiridas"
+              title="Unidades recibidas"
               value={numberFormatter.format(
                 summary.kpis
                   .insumosAdquiridos,
               )}
-              helper="unidades de insumos"
+              helper="cantidad efectivamente recibida"
               icon={Boxes}
             />
           </div>
@@ -268,7 +293,8 @@ export function ComprasPage() {
               title="Top proveedores"
               description="Monto comprado por proveedor."
             >
-              <div className="chart-demo">
+              {summary.topProveedores.length > 0 ? (
+                <div className="chart-demo">
                 <ResponsiveContainer
                   width="100%"
                   height={300}
@@ -279,8 +305,10 @@ export function ComprasPage() {
                     }
                     layout="vertical"
                     margin={{
+                      top: 10,
+                      right: 35,
+                      bottom: 30,
                       left: 40,
-                      right: 25,
                     }}
                   >
                     <CartesianGrid
@@ -290,12 +318,9 @@ export function ComprasPage() {
 
                     <XAxis
                       type="number"
-                      tickFormatter={(value) =>
-                        `${Math.round(
-                          Number(value) /
-                            1000000,
-                        )}M`
-                      }
+                      tickFormatter={formatAxisAmount}
+                      height={45}
+                      tickMargin={10}
                     />
 
                     <YAxis
@@ -327,13 +352,29 @@ export function ComprasPage() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              ) : (
+                <div
+                  className="chart-demo"
+                  style={{
+                    minHeight: 220,
+                    display: 'grid',
+                    placeItems: 'center',
+                    padding: 24,
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  Sin compras efectivas para el período seleccionado.
+                </div>
+              )}
             </ChartCard>
 
             <ChartCard
               title="Top insumos"
               description="Monto comprado por insumo."
             >
-              <div className="chart-demo">
+              {summary.topInsumos.length > 0 ? (
+                <div className="chart-demo">
                 <ResponsiveContainer
                   width="100%"
                   height={300}
@@ -344,8 +385,10 @@ export function ComprasPage() {
                     }
                     layout="vertical"
                     margin={{
+                      top: 10,
+                      right: 35,
+                      bottom: 30,
                       left: 40,
-                      right: 25,
                     }}
                   >
                     <CartesianGrid
@@ -355,12 +398,9 @@ export function ComprasPage() {
 
                     <XAxis
                       type="number"
-                      tickFormatter={(value) =>
-                        `${Math.round(
-                          Number(value) /
-                            1000000,
-                        )}M`
-                      }
+                      tickFormatter={formatAxisAmount}
+                      height={45}
+                      tickMargin={10}
                     />
 
                     <YAxis
@@ -392,6 +432,21 @@ export function ComprasPage() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              ) : (
+                <div
+                  className="chart-demo"
+                  style={{
+                    minHeight: 220,
+                    display: 'grid',
+                    placeItems: 'center',
+                    padding: 24,
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  Sin compras efectivas para el período seleccionado.
+                </div>
+              )}
             </ChartCard>
           </div>
 
@@ -402,12 +457,18 @@ export function ComprasPage() {
             <div className="chart-demo">
               <ResponsiveContainer
                 width="100%"
-                height={300}
+                height={340}
               >
                 <LineChart
                   data={
                     summary.evolucionMensual
                   }
+                  margin={{
+                    top: 10,
+                    right: 35,
+                    bottom: 55,
+                    left: 15,
+                  }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -418,15 +479,12 @@ export function ComprasPage() {
                     dataKey="label"
                     tickLine={false}
                     axisLine={false}
+                    height={60}
+                    tickMargin={14}
                   />
 
                   <YAxis
-                    tickFormatter={(value) =>
-                      `${Math.round(
-                        Number(value) /
-                          1000000,
-                      )}M`
-                    }
+                    tickFormatter={formatAxisAmount}
                   />
 
                   <Tooltip
@@ -454,7 +512,8 @@ export function ComprasPage() {
             title="Compras por centro de costo"
             description="Distribución del gasto entre centros de costo."
           >
-            <div className="chart-demo">
+            {summary.comprasPorCentroCosto.length > 0 ? (
+                <div className="chart-demo">
               <ResponsiveContainer
                 width="100%"
                 height={280}
@@ -464,6 +523,12 @@ export function ComprasPage() {
                     summary
                       .comprasPorCentroCosto
                   }
+                  margin={{
+                    top: 10,
+                    right: 35,
+                    bottom: 45,
+                    left: 15,
+                  }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -474,15 +539,12 @@ export function ComprasPage() {
                     dataKey="label"
                     tickLine={false}
                     axisLine={false}
+                    height={45}
+                    tickMargin={12}
                   />
 
                   <YAxis
-                    tickFormatter={(value) =>
-                      `${Math.round(
-                        Number(value) /
-                          1000000,
-                      )}M`
-                    }
+                    tickFormatter={formatAxisAmount}
                   />
 
                   <Tooltip
@@ -501,11 +563,26 @@ export function ComprasPage() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </ChartCard>
+              ) : (
+                <div
+                  className="chart-demo"
+                  style={{
+                    minHeight: 220,
+                    display: 'grid',
+                    placeItems: 'center',
+                    padding: 24,
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  Sin compras efectivas para el período seleccionado.
+                </div>
+              )}
+            </ChartCard>
 
           <ChartCard
             title="Detalle de órdenes de compra"
-            description={`Primeros ${detail.items.length} registros de ${detail.pagination.total} órdenes mock filtradas.`}
+            description={`Primeros ${detail.items.length} registros de ${detail.pagination.total} registros filtrados.`}
           >
             <DataTable
               columns={columns}

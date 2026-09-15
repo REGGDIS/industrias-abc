@@ -11,6 +11,7 @@ export interface ComprasKpis {
 
 export interface CompraDetalle {
   ordenCompraId: number;
+  numeroOc: string;
   fecha: string;
   proveedor: string;
   insumo: string;
