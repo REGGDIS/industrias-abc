@@ -319,3 +319,135 @@ def obtener_periodos_remuneraciones() -> dict:
         "fechaMaximaDisponible":
             f"{ultimo_anio:04d}-{ultimo_mes:02d}-01",
     }
+
+def obtener_periodos_contabilidad() -> dict:
+    sql = """
+        SELECT DISTINCT
+            df.anio,
+            df.mes
+        FROM dw.fact_contabilidad fc
+        JOIN dw.dim_fecha df
+          ON df.fecha_key = fc.fecha_key
+        ORDER BY df.anio, df.mes;
+    """
+
+    sql_fecha_maxima = """
+        SELECT
+            MAX(df.fecha) AS fecha_maxima
+        FROM dw.fact_contabilidad fc
+        JOIN dw.dim_fecha df
+          ON df.fecha_key = fc.fecha_key;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+
+            cursor.execute(sql_fecha_maxima)
+            fecha_row = cursor.fetchone()
+
+    if not rows:
+        return {
+            "anios": [],
+            "meses": [],
+            "ultimoPeriodoDisponible": None,
+            "fechaMaximaDisponible": None,
+        }
+
+    ultimo = rows[-1]
+    ultimo_anio = int(ultimo["anio"])
+    ultimo_mes = int(ultimo["mes"])
+
+    nombres_meses = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+    ]
+
+    anios = sorted({
+        int(row["anio"])
+        for row in rows
+    })
+
+    meses_disponibles = sorted({
+        int(row["mes"])
+        for row in rows
+        if int(row["anio"]) == ultimo_anio
+    })
+
+    meses = [
+        {
+            "id": mes,
+            "label": nombres_meses[mes - 1],
+        }
+        for mes in meses_disponibles
+    ]
+
+    fecha_maxima = (
+        fecha_row["fecha_maxima"]
+        if fecha_row
+        else None
+    )
+
+    return {
+        "anios": anios,
+        "meses": meses,
+        "ultimoPeriodoDisponible": {
+            "anio": ultimo_anio,
+            "mes": ultimo_mes,
+        },
+        "fechaMaximaDisponible": (
+            fecha_maxima.isoformat()
+            if fecha_maxima
+            else None
+        ),
+    }
+
+
+def obtener_centros_costo() -> list[dict]:
+    sql = """
+        SELECT
+            centro_costo_key AS id,
+            codigo_centro_costo AS codigo,
+            nombre_centro_costo AS label
+        FROM dw.dim_centro_costo
+        WHERE centro_costo_key > 0
+        ORDER BY nombre_centro_costo;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            return cursor.fetchall()
+
+
+def obtener_cuentas_contables() -> list[dict]:
+    sql = """
+        SELECT DISTINCT
+            dcc.cuenta_key AS id,
+            dcc.codigo_cuenta AS codigo,
+            dcc.codigo_cuenta || ' - ' ||
+            dcc.nombre_cuenta AS label,
+            dcc.tipo_cuenta AS tipo,
+            dcc.grupo
+        FROM dw.dim_cuenta_contable dcc
+        JOIN dw.fact_contabilidad fc
+          ON fc.cuenta_key = dcc.cuenta_key
+        WHERE dcc.cuenta_key > 0
+        ORDER BY dcc.codigo_cuenta;
+    """
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
+            return cursor.fetchall()

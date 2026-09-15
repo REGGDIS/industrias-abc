@@ -1,11 +1,10 @@
+import {
+  useEffect,
+  useState,
+} from 'react';
 import { RotateCcw } from 'lucide-react';
 
-import {
-  aniosMock,
-  centrosCostoMock,
-  mesesMock,
-} from '../../mocks/catalogs.mock';
-import { cuentasGastoMock } from '../../mocks/contabilidad.mock';
+import { getContabilidadCatalogos } from '../../services/contabilidad-catalogos.service';
 import type { SelectOption } from '../../types/common';
 import type { BiFilters } from '../../types/filters';
 import { FilterSelect } from './FilterSelect';
@@ -15,18 +14,70 @@ interface ContabilidadFilterBarProps {
   onChange: (filters: BiFilters) => void;
 }
 
-const cuentasOptions: SelectOption[] =
-  cuentasGastoMock.map((cuenta) => ({
-    id: cuenta.cuentaContableId,
-    label: `${cuenta.codigo} - ${cuenta.nombre}`,
-  }));
-
 export function ContabilidadFilterBar({
   filters,
   onChange,
 }: ContabilidadFilterBarProps) {
+  const [anios, setAnios] =
+    useState<SelectOption[]>([]);
+
+  const [meses, setMeses] =
+    useState<SelectOption[]>([]);
+
+  const [centrosCosto, setCentrosCosto] =
+    useState<SelectOption[]>([]);
+
+  const [cuentasContables, setCuentasContables] =
+    useState<SelectOption[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    getContabilidadCatalogos().then(
+      (catalogos) => {
+        if (!active) {
+          return;
+        }
+
+        setAnios(catalogos.anios);
+        setMeses(catalogos.meses);
+        setCentrosCosto(
+          catalogos.centrosCosto,
+        );
+        setCuentasContables(
+          catalogos.cuentasContables,
+        );
+
+        if (
+          !filters.mes &&
+          catalogos.ultimoPeriodoDisponible
+        ) {
+          onChange({
+            ...filters,
+            anio:
+              catalogos
+                .ultimoPeriodoDisponible
+                .anio,
+            mes:
+              catalogos
+                .ultimoPeriodoDisponible
+                .mes,
+          });
+        }
+      },
+    );
+
+    return () => {
+      active = false;
+    };
+  }, [filters.mes]);
+
   function updateFilter(
-    key: keyof BiFilters,
+    key:
+      | 'anio'
+      | 'mes'
+      | 'centroCostoId'
+      | 'cuentaContableId',
     rawValue: string,
   ) {
     onChange({
@@ -44,25 +95,34 @@ export function ContabilidadFilterBar({
         <FilterSelect
           label="Año"
           value={filters.anio}
-          options={aniosMock}
+          options={anios}
+          placeholder="Todos"
           onChange={(value) =>
-            updateFilter('anio', value)
+            updateFilter(
+              'anio',
+              value,
+            )
           }
         />
 
         <FilterSelect
           label="Mes"
           value={filters.mes}
-          options={mesesMock}
+          options={meses}
+          placeholder="Todos"
           onChange={(value) =>
-            updateFilter('mes', value)
+            updateFilter(
+              'mes',
+              value,
+            )
           }
         />
 
         <FilterSelect
           label="Centro de costo"
           value={filters.centroCostoId}
-          options={centrosCostoMock}
+          options={centrosCosto}
+          placeholder="Todos"
           onChange={(value) =>
             updateFilter(
               'centroCostoId',
@@ -74,7 +134,8 @@ export function ContabilidadFilterBar({
         <FilterSelect
           label="Cuenta contable"
           value={filters.cuentaContableId}
-          options={cuentasOptions}
+          options={cuentasContables}
+          placeholder="Todas"
           onChange={(value) =>
             updateFilter(
               'cuentaContableId',
@@ -87,7 +148,11 @@ export function ContabilidadFilterBar({
       <button
         type="button"
         className="filter-clear-button"
-        onClick={() => onChange({})}
+        onClick={() =>
+          onChange({
+            anio: filters.anio ?? 2025,
+          })
+        }
       >
         <RotateCcw size={16} />
         Limpiar

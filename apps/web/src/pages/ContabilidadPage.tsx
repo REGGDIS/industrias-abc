@@ -30,7 +30,7 @@ import {
   DataTable,
   type DataTableColumn,
 } from '../components/tables/DataTable';
-import { contabilidadMockService } from '../services/mock/contabilidad.mock.service';
+import { contabilidadService } from '../services/contabilidad.service';
 import type {
   ContabilidadResumen,
   MovimientoContable,
@@ -130,7 +130,7 @@ const columns: DataTableColumn<MovimientoContable>[] = [
 export function ContabilidadPage() {
   const [filters, setFilters] =
     useState<BiFilters>({
-      anio: 2026,
+      anio: 2025,
     });
 
   const [summary, setSummary] =
@@ -147,10 +147,10 @@ export function ContabilidadPage() {
     let active = true;
 
     Promise.all([
-      contabilidadMockService.getResumen(
+      contabilidadService.getResumen(
         filters,
       ),
-      contabilidadMockService.getMovimientos(
+      contabilidadService.getMovimientos(
         filters,
       ),
     ]).then(
@@ -203,7 +203,7 @@ export function ContabilidadPage() {
         <AlertCard
           tone="info"
           title="Sin movimientos contables"
-          description="No existen movimientos mock para la combinación de período, centro de costo y cuenta seleccionada."
+          description="No existen movimientos contables para la combinación de período, centro de costo y cuenta seleccionada."
         />
       ) : null}
 
@@ -264,8 +264,7 @@ export function ContabilidadPage() {
               title="Variación mensual"
               value={
                 summary.kpis
-                  .variacionMensual ===
-                undefined
+                  .variacionMensual == null
                   ? '—'
                   : `${summary.kpis.variacionMensual.toLocaleString(
                       'es-CL',
@@ -407,12 +406,18 @@ export function ContabilidadPage() {
             <div className="chart-demo">
               <ResponsiveContainer
                 width="100%"
-                height={300}
+                height={340}
               >
                 <LineChart
                   data={
                     summary.evolucionGastos
                   }
+                  margin={{
+                    top: 10,
+                    right: 55,
+                    bottom: 55,
+                    left: 10,
+                  }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -421,6 +426,9 @@ export function ContabilidadPage() {
 
                   <XAxis
                     dataKey="label"
+                    height={50}
+                    tickMargin={12}
+                    interval={0}
                     tickLine={false}
                     axisLine={false}
                   />
@@ -475,6 +483,8 @@ export function ContabilidadPage() {
 
                   <XAxis
                     dataKey="label"
+                    height={40}
+                    tickMargin={10}
                     tickLine={false}
                     axisLine={false}
                   />
@@ -507,7 +517,7 @@ export function ContabilidadPage() {
 
           <ChartCard
             title="Detalle de movimientos contables"
-            description={`Primeros ${movements.items.length} registros de ${movements.pagination.total} movimientos mock filtrados.`}
+            description={`Primeros ${movements.items.length} registros de ${movements.pagination.total} movimientos contables filtrados.`}
           >
             <DataTable
               columns={columns}

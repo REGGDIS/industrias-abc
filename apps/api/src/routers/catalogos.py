@@ -9,6 +9,9 @@ from src.repositories.catalogos_repository import (
     obtener_periodos_asistencia,
     obtener_periodos_contratos,
     obtener_periodos_remuneraciones,
+    obtener_periodos_contabilidad,
+    obtener_centros_costo,
+    obtener_cuentas_contables,
 )
 
 
@@ -32,6 +35,20 @@ def listar_cargos():
     }
 
 
+@router.get("/centros-costo")
+def listar_centros_costo():
+    return {
+        "items": obtener_centros_costo()
+    }
+
+
+@router.get("/cuentas-contables")
+def listar_cuentas_contables():
+    return {
+        "items": obtener_cuentas_contables()
+    }
+
+
 @router.get("/periodos")
 def listar_periodos(
     dominio: str = Query(...),
@@ -50,10 +67,13 @@ def listar_periodos(
     if dominio_normalizado == "remuneraciones":
         return obtener_periodos_remuneraciones()
 
+    if dominio_normalizado == "contabilidad":
+        return obtener_periodos_contabilidad()
+
     raise HTTPException(
         status_code=400,
         detail=(
             "Dominio no soportado. "
-            "Use rrhh, asistencia, contratos o remuneraciones."
+            "Use rrhh, asistencia, contratos, remuneraciones o contabilidad."
         ),
     )
