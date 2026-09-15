@@ -232,7 +232,7 @@ export class AnalisisMockService
           asistencia.kpis.horasExtras,
 
         produccion:
-          produccion.kpis.produccionReal,
+          produccion.kpis.cantidadProducida,
       },
     ];
   }

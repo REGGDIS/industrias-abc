@@ -14,6 +14,7 @@ export interface BiFilters {
 
   proveedorId?: number;
   insumoId?: number;
+  insumoRef?: string;
 
   productoId?: number;
   cuentaContableId?: number;

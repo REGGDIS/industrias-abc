@@ -3,12 +3,12 @@ import {
   useState,
 } from 'react';
 import {
-  Boxes,
-  CheckCircle2,
   Factory,
   Gauge,
   PackageCheck,
   TriangleAlert,
+  ListChecks,
+  Boxes,
 } from 'lucide-react';
 import {
   Bar,
@@ -30,7 +30,9 @@ import {
   DataTable,
   type DataTableColumn,
 } from '../components/tables/DataTable';
-import { produccionMockService } from '../services/mock/produccion.mock.service';
+import {
+  produccionService,
+} from '../services/produccion.service';
 import type { BiFilters } from '../types/filters';
 import type {
   ProduccionDetalle,
@@ -39,108 +41,190 @@ import type {
 } from '../types/produccion';
 
 const numberFormatter =
-  new Intl.NumberFormat('es-CL', {
-    maximumFractionDigits: 1,
-  });
+  new Intl.NumberFormat(
+    'es-CL',
+    {
+      maximumFractionDigits: 1,
+    },
+  );
 
 function formatNumber(
   value: number,
 ) {
-  return numberFormatter.format(value);
+  return numberFormatter.format(
+    value,
+  );
 }
 
-const columns: DataTableColumn<ProduccionDetalle>[] = [
-  {
-    key: 'orden',
-    label: 'Orden',
-    render: (row) =>
-      `OP-${String(
-        row.ordenProduccionId,
-      ).padStart(4, '0')}`,
-  },
-  {
-    key: 'producto',
-    label: 'Producto',
-    render: (row) =>
-      row.producto,
-  },
-  {
-    key: 'planificada',
-    label: 'Planificada',
-    align: 'right',
-    render: (row) =>
-      formatNumber(
-        row.cantidadPlanificada,
-      ),
-  },
-  {
-    key: 'producida',
-    label: 'Producida',
-    align: 'right',
-    render: (row) =>
-      formatNumber(
-        row.cantidadProducida,
-      ),
-  },
-  {
-    key: 'rechazada',
-    label: 'Rechazada',
-    align: 'right',
-    render: (row) =>
-      formatNumber(
-        row.cantidadRechazada,
-      ),
-  },
-  {
-    key: 'cumplimiento',
-    label: 'Cumplimiento',
-    align: 'right',
-    render: (row) =>
-      `${row.cumplimiento.toLocaleString(
-        'es-CL',
-        {
-          maximumFractionDigits: 1,
-        },
-      )} %`,
-  },
-];
+function formatPercent(
+  value: number,
+) {
+  return `${value.toLocaleString(
+    'es-CL',
+    {
+      maximumFractionDigits: 2,
+    },
+  )} %`;
+}
+
+function cumplimientoOrden(
+  row: ProduccionDetalle,
+) {
+  if (
+    row.cantidadPlanificada <= 0
+  ) {
+    return 0;
+  }
+
+  return (
+    row.cantidadProducida /
+    row.cantidadPlanificada *
+    100
+  );
+}
+
+const columns:
+  DataTableColumn<ProduccionDetalle>[] = [
+    {
+      key: 'orden',
+      label: 'Orden',
+      render: (row) =>
+        row.numeroOrden,
+    },
+    {
+      key: 'fecha',
+      label: 'Inicio',
+      render: (row) =>
+        row.fechaInicio,
+    },
+    {
+      key: 'producto',
+      label: 'Producto',
+      render: (row) =>
+        `${row.productoCodigo} - ${row.producto}`,
+    },
+    {
+      key: 'estado',
+      label: 'Estado',
+      render: (row) =>
+        row.estado.replace(
+          '_',
+          ' ',
+        ),
+    },
+    {
+      key: 'planificada',
+      label: 'Planificada',
+      align: 'right',
+      render: (row) =>
+        formatNumber(
+          row.cantidadPlanificada,
+        ),
+    },
+    {
+      key: 'producida',
+      label: 'Producida',
+      align: 'right',
+      render: (row) =>
+        formatNumber(
+          row.cantidadProducida,
+        ),
+    },
+    {
+      key: 'rechazada',
+      label: 'Rechazada',
+      align: 'right',
+      render: (row) =>
+        formatNumber(
+          row.cantidadRechazada,
+        ),
+    },
+    {
+      key: 'cumplimiento',
+      label: 'Cumplimiento',
+      align: 'right',
+      render: (row) =>
+        formatPercent(
+          cumplimientoOrden(
+            row,
+          ),
+        ),
+    },
+  ];
 
 export function ProduccionPage() {
-  const [filters, setFilters] =
-    useState<BiFilters>({
-      anio: 2026,
-    });
+  const [
+    filters,
+    setFilters,
+  ] = useState<BiFilters>({
+    anio: 2026,
+  });
 
-  const [summary, setSummary] =
-    useState<ProduccionResumen | null>(
-      null,
-    );
+  const [
+    summary,
+    setSummary,
+  ] = useState<
+    ProduccionResumen | null
+  >(null);
 
-  const [detail, setDetail] =
-    useState<ProduccionDetalleResponse | null>(
-      null,
-    );
+  const [
+    detail,
+    setDetail,
+  ] = useState<
+    ProduccionDetalleResponse | null
+  >(null);
+
+  const [
+    error,
+    setError,
+  ] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     let active = true;
 
+    setError(null);
+
     Promise.all([
-      produccionMockService.getResumen(
+      produccionService.getResumen(
         filters,
       ),
-      produccionMockService.getDetalle(
+      produccionService.getDetalle(
         filters,
       ),
-    ]).then(
-      ([summaryResult, detailResult]) => {
+    ])
+      .then(
+        ([
+          summaryResult,
+          detailResult,
+        ]) => {
+          if (!active) {
+            return;
+          }
+
+          setSummary(
+            summaryResult,
+          );
+          setDetail(
+            detailResult,
+          );
+        },
+      )
+      .catch((reason) => {
         if (!active) {
           return;
         }
 
-        setSummary(summaryResult);
-        setDetail(detailResult);
-      },
-    );
+        setSummary(null);
+        setDetail(null);
+
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : 'No fue posible cargar Producción.',
+        );
+      });
 
     return () => {
       active = false;
@@ -150,7 +234,8 @@ export function ProduccionPage() {
   const hasData =
     Boolean(
       detail &&
-        detail.pagination.total > 0,
+        detail.pagination
+          .total > 0,
     );
 
   return (
@@ -166,7 +251,8 @@ export function ProduccionPage() {
           <p>
             Producción planificada,
             producción real, rechazo y
-            consumo de insumos.
+            consumo de insumos desde el
+            Data Warehouse.
           </p>
         </div>
       </div>
@@ -176,13 +262,21 @@ export function ProduccionPage() {
         onChange={setFilters}
       />
 
+      {error ? (
+        <AlertCard
+          tone="danger"
+          title="Error al cargar Producción"
+          description={error}
+        />
+      ) : null}
+
       {summary &&
       detail &&
       !hasData ? (
         <AlertCard
           tone="info"
           title="Sin registros de producción"
-          description="No existen órdenes de producción mock para la combinación de período, producto e insumo seleccionada."
+          description="No existen órdenes de producción para la combinación de período, producto y referencia de insumo seleccionada."
         />
       ) : null}
 
@@ -195,7 +289,7 @@ export function ProduccionPage() {
               title="Producción planificada"
               value={formatNumber(
                 summary.kpis
-                  .produccionPlanificada,
+                  .cantidadPlanificada,
               )}
               helper="unidades planificadas"
               icon={Factory}
@@ -205,7 +299,7 @@ export function ProduccionPage() {
               title="Producción real"
               value={formatNumber(
                 summary.kpis
-                  .produccionReal,
+                  .cantidadProducida,
               )}
               helper="unidades producidas"
               icon={PackageCheck}
@@ -213,12 +307,10 @@ export function ProduccionPage() {
 
             <KpiCard
               title="Cumplimiento"
-              value={`${summary.kpis.cumplimientoProduccion.toLocaleString(
-                'es-CL',
-                {
-                  maximumFractionDigits: 1,
-                },
-              )} %`}
+              value={formatPercent(
+                summary.kpis
+                  .cumplimientoProduccion,
+              )}
               helper="real vs planificado"
               icon={Gauge}
             />
@@ -235,24 +327,22 @@ export function ProduccionPage() {
 
             <KpiCard
               title="Tasa de rechazo"
-              value={`${summary.kpis.tasaRechazo.toLocaleString(
-                'es-CL',
-                {
-                  maximumFractionDigits: 1,
-                },
-              )} %`}
+              value={formatPercent(
+                summary.kpis
+                  .tasaRechazo,
+              )}
               helper="sobre producción real"
-              icon={CheckCircle2}
+              icon={Boxes}
             />
 
             <KpiCard
-              title="Consumo de insumos"
-              value={formatNumber(
+              title="Órdenes de producción"
+              value={String(
                 summary.kpis
-                  .consumoInsumos,
+                  .totalOrdenes,
               )}
-              helper="unidades equivalentes"
-              icon={Boxes}
+              helper={`${summary.kpis.productosActivos} productos activos`}
+              icon={ListChecks}
             />
           </div>
 
@@ -269,12 +359,14 @@ export function ProduccionPage() {
                   <BarChart
                     data={
                       summary
-                        .productosConMayorRechazo
+                        .rechazoPorProducto
                     }
                     layout="vertical"
                     margin={{
-                      left: 30,
+                      top: 10,
                       right: 25,
+                      bottom: 30,
+                      left: 30,
                     }}
                   >
                     <CartesianGrid
@@ -285,6 +377,8 @@ export function ProduccionPage() {
                     <XAxis
                       type="number"
                       allowDecimals={false}
+                      tickMargin={10}
+                      height={35}
                     />
 
                     <YAxis
@@ -297,7 +391,11 @@ export function ProduccionPage() {
 
                     <Tooltip
                       formatter={(value) => [
-                        formatNumber(Number(value)),
+                        formatNumber(
+                          Number(
+                            value,
+                          ),
+                        ),
                         'Unidades rechazadas',
                       ]}
                     />
@@ -305,7 +403,12 @@ export function ProduccionPage() {
                     <Bar
                       dataKey="value"
                       fill="var(--primary)"
-                      radius={[0, 5, 5, 0]}
+                      radius={[
+                        0,
+                        5,
+                        5,
+                        0,
+                      ]}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -313,8 +416,8 @@ export function ProduccionPage() {
             </ChartCard>
 
             <ChartCard
-              title="Consumo por insumo"
-              description="Consumo acumulado por tipo de insumo."
+              title="Desviación de consumo por referencia"
+              description="Diferencia porcentual entre consumo real y planificado por referencia de origen. Las referencias aún no están homologadas a insumos empresariales."
             >
               <div className="chart-demo">
                 <ResponsiveContainer
@@ -323,13 +426,26 @@ export function ProduccionPage() {
                 >
                   <BarChart
                     data={
-                      summary
-                        .consumoPorInsumo
+                      summary.consumoPorInsumo.map(
+                        (item) => ({
+                          label:
+                            item.label,
+                          value:
+                            item.planificado > 0
+                              ? (
+                                  item.desviacion /
+                                  item.planificado
+                                ) * 100
+                              : 0,
+                        }),
+                      )
                     }
                     layout="vertical"
                     margin={{
+                      top: 5,
+                      right: 35,
+                      bottom: 10,
                       left: 30,
-                      right: 25,
                     }}
                   >
                     <CartesianGrid
@@ -340,29 +456,195 @@ export function ProduccionPage() {
                     <XAxis
                       type="number"
                       tickFormatter={(value) =>
-                        formatNumber(Number(value))
+                        `${Number(
+                          value,
+                        ).toLocaleString(
+                          'es-CL',
+                          {
+                            maximumFractionDigits: 1,
+                          },
+                        )} %`
                       }
                     />
 
                     <YAxis
                       type="category"
                       dataKey="label"
-                      width={170}
+                      width={150}
                       tickLine={false}
                       axisLine={false}
                     />
 
                     <Tooltip
                       formatter={(value) => [
-                        formatNumber(Number(value)),
-                        'Consumo',
+                        `${Number(
+                          value,
+                        ).toLocaleString(
+                          'es-CL',
+                          {
+                            maximumFractionDigits: 2,
+                          },
+                        )} %`,
+                        'Desviación',
                       ]}
                     />
 
                     <Bar
                       dataKey="value"
                       fill="var(--primary)"
-                      radius={[0, 5, 5, 0]}
+                      radius={[
+                        5,
+                        5,
+                        5,
+                        5,
+                      ]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartCard>
+          </div>
+
+          <div className="dashboard-two-columns">
+            <ChartCard
+              title="Evolución mensual de producción"
+              description="Producción planificada y real para el año seleccionado."
+            >
+              <div className="chart-demo">
+                <ResponsiveContainer
+                  width="100%"
+                  height={300}
+                >
+                  <LineChart
+                    data={
+                      summary
+                        .evolucionMensual
+                    }
+                    margin={{
+                      top: 10,
+                      right: 20,
+                      bottom: 30,
+                      left: 5,
+                    }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+
+                    <XAxis
+                      dataKey="label"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={12}
+                      height={40}
+                    />
+
+                    <YAxis
+                      tickFormatter={(value) =>
+                        formatNumber(
+                          Number(
+                            value,
+                          ),
+                        )
+                      }
+                    />
+
+                    <Tooltip
+                      formatter={(
+                        value,
+                        name,
+                      ) => [
+                        formatNumber(
+                          Number(
+                            value,
+                          ),
+                        ),
+                        name ===
+                        'producida'
+                          ? 'Producción real'
+                          : 'Planificada',
+                      ]}
+                    />
+
+                    <Line
+                      type="monotone"
+                      dataKey="planificada"
+                      stroke="var(--border-strong)"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+
+                    <Line
+                      type="monotone"
+                      dataKey="producida"
+                      stroke="var(--primary)"
+                      strokeWidth={3}
+                      dot={{ r: 3 }}
+                      activeDot={{
+                        r: 5,
+                      }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartCard>
+
+            <ChartCard
+              title="Órdenes por estado"
+              description="Distribución de las órdenes del período seleccionado."
+            >
+              <div className="chart-demo">
+                <ResponsiveContainer
+                  width="100%"
+                  height={300}
+                >
+                  <BarChart
+                    data={
+                      summary
+                        .ordenesPorEstado
+                    }
+                    margin={{
+                      top: 10,
+                      right: 15,
+                      bottom: 35,
+                      left: 5,
+                    }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+
+                    <XAxis
+                      dataKey="label"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={12}
+                      height={45}
+                      tickFormatter={(value) =>
+                        String(value).replace(
+                          '_',
+                          ' ',
+                        )
+                      }
+                    />
+
+                    <YAxis
+                      allowDecimals={false}
+                    />
+
+                    <Tooltip />
+
+                    <Bar
+                      dataKey="value"
+                      fill="var(--primary)"
+                      radius={[
+                        5,
+                        5,
+                        0,
+                        0,
+                      ]}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -371,67 +653,14 @@ export function ProduccionPage() {
           </div>
 
           <ChartCard
-            title="Evolución mensual de producción"
-            description="Producción real mensual para los filtros seleccionados."
-          >
-            <div className="chart-demo">
-              <ResponsiveContainer
-                width="100%"
-                height={300}
-              >
-                <LineChart
-                  data={
-                    summary
-                      .evolucionMensual
-                  }
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                  />
-
-                  <XAxis
-                    dataKey="label"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-
-                  <YAxis
-                    allowDecimals={false}
-                    tickFormatter={(value) =>
-                      formatNumber(Number(value))
-                    }
-                  />
-
-                  <Tooltip
-                    formatter={(value) => [
-                      formatNumber(Number(value)),
-                      'Producción real',
-                    ]}
-                  />
-
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--primary)"
-                    strokeWidth={3}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-
-          <ChartCard
             title="Detalle de órdenes de producción"
-            description={`Primeros ${detail.items.length} registros de ${detail.pagination.total} órdenes mock filtradas.`}
+            description={`${detail.items.length} registros mostrados de ${detail.pagination.total} órdenes filtradas.`}
           >
             <DataTable
               columns={columns}
               rows={detail.items}
               getRowKey={(row) =>
-                row.ordenProduccionId
+                row.produccionId
               }
             />
           </ChartCard>

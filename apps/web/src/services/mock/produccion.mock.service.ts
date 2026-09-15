@@ -38,8 +38,9 @@ function filterRecords(
     }
 
     if (
-      filters.insumoId &&
-      record.insumoId !== filters.insumoId
+      filters.insumoRef &&
+      record.insumo !==
+        filters.insumoRef
     ) {
       return false;
     }
@@ -48,70 +49,126 @@ function filterRecords(
   });
 }
 
-function groupByCategory(
+function groupRechazo(
   records: ProduccionMockRecord[],
-  key:
-    | 'producto'
-    | 'insumo',
-  value:
-    | 'cantidadRechazada'
-    | 'consumoInsumo',
 ) {
-  const groups = new Map<
-    string,
-    number
-  >();
+  const groups = new Map<string, number>();
 
   for (const record of records) {
-    const label = record[key];
-
     groups.set(
-      label,
-      (groups.get(label) ?? 0) +
-        record[value],
+      record.producto,
+      (groups.get(record.producto) ?? 0) +
+        record.cantidadRechazada,
     );
   }
 
   return Array.from(groups.entries())
-    .map(([label, total]) => ({
+    .map(([label, value]) => ({
       label,
       value:
-        Math.round(total * 10) / 10,
+        Math.round(value * 10) / 10,
+    }))
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
+}
+
+function groupEstados(
+  records: ProduccionMockRecord[],
+) {
+  return [
+    {
+      label: 'TERMINADA',
+      value: records.length,
+    },
+  ];
+}
+
+function groupConsumos(
+  records: ProduccionMockRecord[],
+) {
+  const groups = new Map<
+    string,
+    {
+      planificado: number;
+      consumido: number;
+    }
+  >();
+
+  for (const record of records) {
+    const current =
+      groups.get(record.insumo) ?? {
+        planificado: 0,
+        consumido: 0,
+      };
+
+    current.planificado +=
+      record.consumoInsumo;
+
+    current.consumido +=
+      record.consumoInsumo;
+
+    groups.set(
+      record.insumo,
+      current,
+    );
+  }
+
+  return Array.from(groups.entries())
+    .map(([label, value]) => ({
+      label,
+      planificado:
+        Math.round(
+          value.planificado * 10,
+        ) / 10,
+      consumido:
+        Math.round(
+          value.consumido * 10,
+        ) / 10,
+      desviacion: 0,
     }))
     .sort(
-      (a, b) => b.value - a.value,
+      (a, b) =>
+        b.consumido - a.consumido,
     );
 }
 
 function buildMonthlyEvolution(
   records: ProduccionMockRecord[],
-  filters: BiFilters,
+  anio: number,
 ) {
-  const anio =
-    filters.anio ?? 2026;
-
-  const grouped = new Map<
+  const groups = new Map<
     number,
-    number
+    {
+      planificada: number;
+      producida: number;
+      rechazada: number;
+    }
   >();
 
   for (const record of records) {
-    grouped.set(
+    const current =
+      groups.get(record.mes) ?? {
+        planificada: 0,
+        producida: 0,
+        rechazada: 0,
+      };
+
+    current.planificada +=
+      record.cantidadPlanificada;
+
+    current.producida +=
+      record.cantidadProducida;
+
+    current.rechazada +=
+      record.cantidadRechazada;
+
+    groups.set(
       record.mes,
-      (grouped.get(record.mes) ?? 0) +
-        record.cantidadProducida,
+      current,
     );
   }
 
-  const meses =
-    filters.mes
-      ? [filters.mes]
-      : Array.from(
-          { length: anio === 2026 ? 9 : 12 },
-          (_, index) => index + 1,
-        );
-
-  const monthLabels = [
+  const labels = [
     'Ene',
     'Feb',
     'Mar',
@@ -126,37 +183,57 @@ function buildMonthlyEvolution(
     'Dic',
   ];
 
-  return meses.map((mes) => ({
-    anio,
-    mes,
-    label: `${monthLabels[mes - 1]} ${anio}`,
-    value: grouped.get(mes) ?? 0,
-  }));
+  return Array.from(
+    groups.entries(),
+  )
+    .sort(
+      ([mesA], [mesB]) =>
+        mesA - mesB,
+    )
+    .map(([mes, value]) => ({
+      anio,
+      mes,
+      label:
+        `${labels[mes - 1]} ${anio}`,
+      planificada:
+        value.planificada,
+      producida:
+        value.producida,
+      rechazada:
+        value.rechazada,
+    }));
 }
 
 function toDetalle(
   record: ProduccionMockRecord,
 ): ProduccionDetalle {
-  const cumplimiento =
-    record.cantidadPlanificada > 0
-      ? (record.cantidadProducida /
-          record.cantidadPlanificada) *
-        100
-      : 0;
-
   return {
-    ordenProduccionId:
+    produccionId:
       record.ordenProduccionId,
-    producto: record.producto,
+    numeroOrden:
+      `OP-MOCK-${String(
+        record.ordenProduccionId,
+      ).padStart(4, '0')}`,
+    fechaInicio:
+      record.fecha,
+    fechaTermino:
+      record.fecha,
+    productoCodigo:
+      `MOCK-${record.productoId}`,
+    producto:
+      record.producto,
+    categoria:
+      'Producción mock',
+    unidadMedida:
+      'UN',
     cantidadPlanificada:
       record.cantidadPlanificada,
     cantidadProducida:
       record.cantidadProducida,
     cantidadRechazada:
       record.cantidadRechazada,
-    cumplimiento:
-      Math.round(cumplimiento * 10) /
-      10,
+    estado:
+      'TERMINADA',
   };
 }
 
@@ -176,7 +253,7 @@ export class ProduccionMockService
       effectiveFilters,
     );
 
-    const produccionPlanificada =
+    const planificada =
       records.reduce(
         (total, record) =>
           total +
@@ -184,7 +261,7 @@ export class ProduccionMockService
         0,
       );
 
-    const produccionReal =
+    const producida =
       records.reduce(
         (total, record) =>
           total +
@@ -192,7 +269,7 @@ export class ProduccionMockService
         0,
       );
 
-    const cantidadRechazada =
+    const rechazada =
       records.reduce(
         (total, record) =>
           total +
@@ -200,72 +277,91 @@ export class ProduccionMockService
         0,
       );
 
-    const consumoInsumos =
-      records.reduce(
-        (total, record) =>
-          total +
-          record.consumoInsumo,
-        0,
-      );
-
-    const cumplimientoProduccion =
-      produccionPlanificada > 0
-        ? (produccionReal /
-            produccionPlanificada) *
+    const cumplimiento =
+      planificada > 0
+        ? producida /
+          planificada *
           100
         : 0;
 
     const tasaRechazo =
-      produccionReal > 0
-        ? (cantidadRechazada /
-            produccionReal) *
+      producida > 0
+        ? rechazada /
+          producida *
           100
         : 0;
 
+    const evolucionRecords =
+      filterRecords(
+        produccionMockRecords,
+        {
+          ...effectiveFilters,
+          mes: undefined,
+        },
+      );
+
+    const productosActivos =
+      new Set(
+        records.map(
+          (record) =>
+            record.productoId,
+        ),
+      ).size;
+
     return {
+      periodo: {
+        anio:
+          effectiveFilters.anio ??
+          2026,
+        mes:
+          effectiveFilters.mes ??
+          0,
+      },
+
+      filtrosAplicados: {
+        productoId:
+          effectiveFilters.productoId ??
+          null,
+        insumoRef:
+          effectiveFilters.insumoRef ??
+          null,
+      },
+
       kpis: {
-        produccionPlanificada,
-        produccionReal,
+        cantidadPlanificada:
+          planificada,
+        cantidadProducida:
+          producida,
         cumplimientoProduccion:
           Math.round(
-            cumplimientoProduccion * 10,
-          ) / 10,
-        cantidadRechazada,
+            cumplimiento * 100,
+          ) / 100,
+        cantidadRechazada:
+          rechazada,
         tasaRechazo:
           Math.round(
-            tasaRechazo * 10,
-          ) / 10,
-        consumoInsumos:
-          Math.round(
-            consumoInsumos * 10,
-          ) / 10,
+            tasaRechazo * 100,
+          ) / 100,
+        totalOrdenes:
+          records.length,
+        productosActivos,
       },
 
       evolucionMensual:
         buildMonthlyEvolution(
-          filterRecords(
-            produccionMockRecords,
-            {
-              ...effectiveFilters,
-              mes: undefined,
-            },
-          ),
-          effectiveFilters,
+          evolucionRecords,
+          effectiveFilters.anio ??
+            2026,
         ),
 
-      productosConMayorRechazo:
-        groupByCategory(
-          records,
-          'producto',
-          'cantidadRechazada',
-        ),
+      rechazoPorProducto:
+        groupRechazo(records),
+
+      ordenesPorEstado:
+        groupEstados(records),
 
       consumoPorInsumo:
-        groupByCategory(
-          records,
-          'insumo',
-          'consumoInsumo',
-        ),
+        groupConsumos(records),
     };
   }
 
@@ -290,11 +386,13 @@ export class ProduccionMockService
       .map(toDetalle);
 
     return {
-      items: records.slice(0, 20),
+      items:
+        records.slice(0, 20),
       pagination: {
         page: 1,
         pageSize: 20,
-        total: records.length,
+        total:
+          records.length,
       },
     };
   }
