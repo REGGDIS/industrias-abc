@@ -1,370 +1,159 @@
-import {
-  areasMock,
-  centrosCostoMock,
-} from '../../mocks/catalogs.mock';
 import type {
-  CostoArea,
-  CostoCentroCosto,
-  HorasExtraDiferencia,
-  HorasExtraProduccion,
+  AnalisisResumen,
 } from '../../types/analisis';
-import type { BiFilters } from '../../types/filters';
-import type { AnalisisService } from '../contracts/analisis.service';
+import type {
+  AnalisisService,
+} from '../contracts/analisis.service';
 
-import { asistenciaMockService } from './asistencia.mock.service';
-import { comprasMockService } from './compras.mock.service';
-import { contabilidadMockService } from './contabilidad.mock.service';
-import { produccionMockService } from './produccion.mock.service';
-import { remuneracionesMockService } from './remuneraciones.mock.service';
-
-const AREA_PRODUCCION_ID = 4;
-
-function findCategoryValue(
-  values: {
-    label: string;
-    value: number;
-  }[],
-  label: string,
-) {
-  return (
-    values.find(
-      (item) => item.label === label,
-    )?.value ?? 0
-  );
-}
-
-function getCentroCostoIdForArea(
-  areaId: number,
-) {
-  return areaId;
-}
-
-function getAreaIdForCentroCosto(
-  centroCostoId: number,
-) {
-  return centroCostoId;
-}
-
-function getAreaLabel(
-  areaId: number,
-) {
-  return (
-    areasMock.find(
-      (area) =>
-        Number(area.id) === areaId,
-    )?.label ?? `Área ${areaId}`
-  );
-}
-
-function getCentroCostoLabel(
-  centroCostoId: number,
-) {
-  return (
-    centrosCostoMock.find(
-      (centro) =>
-        Number(centro.id) ===
-        centroCostoId,
-    )?.label ??
-    `Centro ${centroCostoId}`
-  );
-}
-
-function areasForFilters(
-  filters: BiFilters,
-) {
-  if (filters.areaId) {
-    return [filters.areaId];
-  }
-
-  if (filters.centroCostoId) {
-    return [
-      getAreaIdForCentroCosto(
-        filters.centroCostoId,
-      ),
-    ];
-  }
-
-  return areasMock.map((area) =>
-    Number(area.id),
-  );
-}
-
-function centrosForFilters(
-  filters: BiFilters,
-) {
-  if (filters.centroCostoId) {
-    return [filters.centroCostoId];
-  }
-
-  if (filters.areaId) {
-    return [
-      getCentroCostoIdForArea(
-        filters.areaId,
-      ),
-    ];
-  }
-
-  return centrosCostoMock.map(
-    (centro) => Number(centro.id),
-  );
-}
+const mockResumen: AnalisisResumen = {
+  kpis: {
+    costoEmpresaJulio2026: 31500000,
+    horasExtraAsistencia: 8.5,
+    horasExtraRemuneradas: 42,
+    comprasEneroMayo2025: 8400000,
+    produccionPlanificadaAgosto2026: 7500,
+    produccionRealAgosto2026: 6900,
+    cumplimientoProduccion: 92,
+    desviacionConsumo: -320,
+  },
+  laboral: [
+    {
+      areaId: 1,
+      area: 'ADMINISTRACIÓN',
+      empleadosRemunerados: 6,
+      horasExtraAsistencia: 4,
+      horasExtraRemuneradas: 18,
+      costoEmpresa: 12000000,
+      asistenciaDesde: '2026-07-27',
+      asistenciaHasta: '2026-07-29',
+    },
+    {
+      areaId: 2,
+      area: 'RECURSOS HUMANOS',
+      empleadosRemunerados: 5,
+      horasExtraAsistencia: 4.5,
+      horasExtraRemuneradas: 12,
+      costoEmpresa: 8500000,
+      asistenciaDesde: '2026-07-27',
+      asistenciaHasta: '2026-07-29',
+    },
+    {
+      areaId: 3,
+      area: 'FINANZAS Y CONTABILIDAD',
+      empleadosRemunerados: 6,
+      horasExtraAsistencia: 0,
+      horasExtraRemuneradas: 12,
+      costoEmpresa: 11000000,
+      asistenciaDesde: null,
+      asistenciaHasta: null,
+    },
+  ],
+  comprasContabilidad: [
+    {
+      anio: 2025,
+      mes: 1,
+      ordenesCompra: 1,
+      totalCompras: 1700000,
+      movimientosContables: 2,
+      totalDebe: 3100000,
+      totalHaber: 3100000,
+    },
+    {
+      anio: 2025,
+      mes: 2,
+      ordenesCompra: 1,
+      totalCompras: 1200000,
+      movimientosContables: 2,
+      totalDebe: 4600000,
+      totalHaber: 4600000,
+    },
+    {
+      anio: 2025,
+      mes: 3,
+      ordenesCompra: 1,
+      totalCompras: 2300000,
+      movimientosContables: 2,
+      totalDebe: 2600000,
+      totalHaber: 2600000,
+    },
+    {
+      anio: 2025,
+      mes: 4,
+      ordenesCompra: 1,
+      totalCompras: 1500000,
+      movimientosContables: 2,
+      totalDebe: 1800000,
+      totalHaber: 1800000,
+    },
+    {
+      anio: 2025,
+      mes: 5,
+      ordenesCompra: 1,
+      totalCompras: 1700000,
+      movimientosContables: 2,
+      totalDebe: 3500000,
+      totalHaber: 3500000,
+    },
+  ],
+  produccionConsumo: [
+    {
+      numeroOrden: 'OP-MOCK-001',
+      codigoProducto: 'PROD-001',
+      producto: 'Producto A',
+      fechaInicio: '2026-08-01',
+      produccionPlanificada: 1000,
+      produccionReal: 920,
+      produccionRechazada: 20,
+      lineasConsumo: 2,
+      consumoPlanificado: 800,
+      consumoReal: 760,
+      desviacionConsumo: -40,
+    },
+    {
+      numeroOrden: 'OP-MOCK-002',
+      codigoProducto: 'PROD-002',
+      producto: 'Producto B',
+      fechaInicio: '2026-08-05',
+      produccionPlanificada: 1500,
+      produccionReal: 1400,
+      produccionRechazada: 25,
+      lineasConsumo: 3,
+      consumoPlanificado: 1100,
+      consumoReal: 1050,
+      desviacionConsumo: -50,
+    },
+  ],
+  calidadCruceProduccion: {
+    consumosHuerfanos: 0,
+    cruceValido: true,
+  },
+  periodos: {
+    laboral: {
+      anio: 2026,
+      mes: 7,
+      asistenciaDesde: '2026-07-27',
+      asistenciaHasta: '2026-07-29',
+    },
+    comprasContabilidad: {
+      anio: 2025,
+      mesDesde: 1,
+      mesHasta: 5,
+    },
+    produccionConsumo: {
+      anio: 2026,
+      mes: 8,
+    },
+  },
+  advertencias: [
+    'Modo mock: datos sintéticos para validar la interfaz.',
+  ],
+};
 
 export class AnalisisMockService
   implements AnalisisService
 {
-  async getCostoPorArea(
-    filters: BiFilters = {},
-  ): Promise<CostoArea[]> {
-    const result: CostoArea[] = [];
-
-    for (const areaId of areasForFilters(
-      filters,
-    )) {
-      const area =
-        getAreaLabel(areaId);
-
-      const centroCostoId =
-        getCentroCostoIdForArea(
-          areaId,
-        );
-
-      const [
-        remuneraciones,
-        compras,
-        contabilidad,
-      ] = await Promise.all([
-        remuneracionesMockService.getResumen({
-          anio: filters.anio,
-          mes: filters.mes,
-          areaId,
-        }),
-
-        comprasMockService.getResumen({
-          anio: filters.anio,
-          mes: filters.mes,
-          centroCostoId,
-        }),
-
-        contabilidadMockService.getResumen({
-          anio: filters.anio,
-          mes: filters.mes,
-          areaId,
-          centroCostoId,
-        }),
-      ]);
-
-      const costoRemuneraciones =
-        remuneraciones.kpis.costoEmpresa;
-
-      const costoCompras =
-        compras.kpis.totalComprado;
-
-      const gastosContables =
-        contabilidad.kpis.gastosTotales;
-
-      result.push({
-        areaId,
-        area,
-        remuneraciones:
-          costoRemuneraciones,
-        compras: costoCompras,
-        gastosContables,
-        costoTotal:
-          costoRemuneraciones +
-          costoCompras +
-          gastosContables,
-      });
-    }
-
-    return result.sort(
-      (a, b) =>
-        b.costoTotal - a.costoTotal,
-    );
-  }
-
-  async getHorasExtraProduccion(
-    filters: BiFilters = {},
-  ): Promise<
-    HorasExtraProduccion[]
-  > {
-    if (
-      filters.areaId &&
-      filters.areaId !==
-        AREA_PRODUCCION_ID
-    ) {
-      return [];
-    }
-
-    if (
-      filters.centroCostoId &&
-      filters.centroCostoId !==
-        AREA_PRODUCCION_ID
-    ) {
-      return [];
-    }
-
-    const [
-      asistencia,
-      produccion,
-    ] = await Promise.all([
-      asistenciaMockService.getResumen({
-        anio: filters.anio,
-        mes: filters.mes,
-        areaId: AREA_PRODUCCION_ID,
-      }),
-
-      produccionMockService.getResumen({
-        anio: filters.anio,
-        mes: filters.mes,
-      }),
-    ]);
-
-    return [
-      {
-        areaId:
-          AREA_PRODUCCION_ID,
-
-        area: getAreaLabel(
-          AREA_PRODUCCION_ID,
-        ),
-
-        horasExtras:
-          asistencia.kpis.horasExtras,
-
-        produccion:
-          produccion.kpis.cantidadProducida,
-      },
-    ];
-  }
-
-  async getHorasExtraDiferencias(
-    filters: BiFilters = {},
-  ): Promise<
-    HorasExtraDiferencia[]
-  > {
-    const result: HorasExtraDiferencia[] =
-      [];
-
-    for (const areaId of areasForFilters(
-      filters,
-    )) {
-      const area =
-        getAreaLabel(areaId);
-
-      const [
-        asistencia,
-        remuneraciones,
-      ] = await Promise.all([
-        asistenciaMockService.getResumen({
-          anio: filters.anio,
-          mes: filters.mes,
-          areaId,
-        }),
-
-        remuneracionesMockService.getResumen({
-          anio: filters.anio,
-          mes: filters.mes,
-          areaId,
-        }),
-      ]);
-
-      const horasRegistradas =
-        asistencia.kpis.horasExtras;
-
-      const horasPagadas =
-        findCategoryValue(
-          remuneraciones.horasExtrasPorArea,
-          area,
-        );
-
-      result.push({
-        areaId,
-        area,
-        horasRegistradas,
-        horasPagadas,
-        diferencia:
-          Math.round(
-            (horasRegistradas -
-              horasPagadas) *
-              10,
-          ) / 10,
-      });
-    }
-
-    return result;
-  }
-
-  async getCostoCentroCosto(
-    filters: BiFilters = {},
-  ): Promise<CostoCentroCosto[]> {
-    const result: CostoCentroCosto[] =
-      [];
-
-    for (const centroCostoId of centrosForFilters(
-      filters,
-    )) {
-      const centroCosto =
-        getCentroCostoLabel(
-          centroCostoId,
-        );
-
-      const areaId =
-        getAreaIdForCentroCosto(
-          centroCostoId,
-        );
-
-      const [
-        remuneraciones,
-        compras,
-        contabilidad,
-      ] = await Promise.all([
-        remuneracionesMockService.getResumen({
-          anio: filters.anio,
-          mes: filters.mes,
-          areaId,
-        }),
-
-        comprasMockService.getResumen({
-          anio: filters.anio,
-          mes: filters.mes,
-          centroCostoId,
-        }),
-
-        contabilidadMockService.getResumen({
-          anio: filters.anio,
-          mes: filters.mes,
-          centroCostoId,
-          areaId,
-        }),
-      ]);
-
-      const costoRemuneraciones =
-        remuneraciones.kpis.costoEmpresa;
-
-      const costoCompras =
-        compras.kpis.totalComprado;
-
-      const gastosContables =
-        contabilidad.kpis.gastosTotales;
-
-      result.push({
-        centroCostoId,
-        centroCosto,
-        remuneraciones:
-          costoRemuneraciones,
-        compras: costoCompras,
-        gastosContables,
-        costoTotal:
-          costoRemuneraciones +
-          costoCompras +
-          gastosContables,
-      });
-    }
-
-    return result.sort(
-      (a, b) =>
-        b.costoTotal - a.costoTotal,
-    );
+  async getResumen(): Promise<AnalisisResumen> {
+    return mockResumen;
   }
 }
 

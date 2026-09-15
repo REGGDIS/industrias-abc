@@ -5,36 +5,42 @@ import {
 } from 'react';
 import {
   Banknote,
-  Building2,
   Clock3,
   Factory,
+  PackageSearch,
 } from 'lucide-react';
 import {
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 
-import { ChartCard } from '../components/charts/ChartCard';
-import { AlertCard } from '../components/feedback/AlertCard';
-import { FilterBar } from '../components/filters/FilterBar';
-import { KpiCard } from '../components/kpi/KpiCard';
+import {
+  ChartCard,
+} from '../components/charts/ChartCard';
+import {
+  AlertCard,
+} from '../components/feedback/AlertCard';
+import {
+  KpiCard,
+} from '../components/kpi/KpiCard';
 import {
   DataTable,
   type DataTableColumn,
 } from '../components/tables/DataTable';
-import { analisisMockService } from '../services/mock/analisis.mock.service';
+import {
+  analisisService,
+} from '../services/analisis.service';
 import type {
-  CostoArea,
-  CostoCentroCosto,
-  HorasExtraDiferencia,
-  HorasExtraProduccion,
+  AnalisisLaboral,
+  AnalisisProduccionConsumo,
+  AnalisisResumen,
 } from '../types/analisis';
-import type { BiFilters } from '../types/filters';
 
 const currencyFormatter =
   new Intl.NumberFormat('es-CL', {
@@ -47,6 +53,26 @@ const numberFormatter =
   new Intl.NumberFormat('es-CL', {
     maximumFractionDigits: 1,
   });
+
+const percentFormatter =
+  new Intl.NumberFormat('es-CL', {
+    maximumFractionDigits: 2,
+  });
+
+const monthNames = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
 
 function formatCurrency(
   value: number,
@@ -63,21 +89,28 @@ function formatNumber(
 function formatCompactCurrency(
   value: number,
 ) {
-  if (
-    Math.abs(value) >=
-    1_000_000
-  ) {
+  const abs = Math.abs(value);
+
+  if (abs >= 1_000_000) {
     return `${(
       value / 1_000_000
-    ).toLocaleString('es-CL', {
-      maximumFractionDigits: 1,
-    })}M`;
+    ).toLocaleString(
+      'es-CL',
+      {
+        maximumFractionDigits: 1,
+      },
+    )}M`;
   }
 
-  if (Math.abs(value) >= 1_000) {
-    return `${Math.round(
-      value / 1_000,
-    ).toLocaleString('es-CL')}K`;
+  if (abs >= 1_000) {
+    return `${(
+      value / 1_000
+    ).toLocaleString(
+      'es-CL',
+      {
+        maximumFractionDigits: 1,
+      },
+    )}K`;
   }
 
   return value.toLocaleString(
@@ -85,177 +118,206 @@ function formatCompactCurrency(
   );
 }
 
-const differenceColumns: DataTableColumn<HorasExtraDiferencia>[] =
-  [
+function formatDate(
+  value: string | null,
+) {
+  if (!value) {
+    return 'Sin registros';
+  }
+
+  const [year, month, day] =
+    value.split('-').map(Number);
+
+  return `${day} ${
+    monthNames[month - 1]
+  } ${year}`;
+}
+
+const laboralColumns:
+  DataTableColumn<AnalisisLaboral>[] = [
     {
       key: 'area',
       label: 'Área',
       render: (row) => row.area,
     },
     {
-      key: 'registradas',
-      label: 'Horas registradas',
+      key: 'empleados',
+      label: 'Empleados',
+      align: 'right',
+      render: (row) =>
+        row.empleadosRemunerados,
+    },
+    {
+      key: 'asistencia',
+      label: 'HE asistencia',
       align: 'right',
       render: (row) =>
         formatNumber(
-          row.horasRegistradas,
+          row.horasExtraAsistencia,
         ),
     },
     {
-      key: 'pagadas',
-      label: 'Horas pagadas',
+      key: 'remuneradas',
+      label: 'HE remuneradas',
       align: 'right',
       render: (row) =>
         formatNumber(
-          row.horasPagadas,
+          row.horasExtraRemuneradas,
         ),
     },
     {
-      key: 'diferencia',
-      label: 'Diferencia',
+      key: 'costo',
+      label: 'Costo empresa',
+      align: 'right',
+      render: (row) =>
+        formatCurrency(
+          row.costoEmpresa,
+        ),
+    },
+    {
+      key: 'cobertura',
+      label: 'Cobertura asistencia',
+      render: (row) =>
+        row.asistenciaDesde
+          ? `${formatDate(
+              row.asistenciaDesde,
+            )} – ${formatDate(
+              row.asistenciaHasta,
+            )}`
+          : 'Sin registros',
+    },
+  ];
+
+const productionColumns:
+  DataTableColumn<AnalisisProduccionConsumo>[] = [
+    {
+      key: 'orden',
+      label: 'Orden',
+      render: (row) => row.numeroOrden,
+    },
+    {
+      key: 'producto',
+      label: 'Producto',
+      render: (row) =>
+        `${row.codigoProducto} · ${row.producto}`,
+    },
+    {
+      key: 'plan',
+      label: 'Prod. plan',
       align: 'right',
       render: (row) =>
         formatNumber(
-          row.diferencia,
+          row.produccionPlanificada,
+        ),
+    },
+    {
+      key: 'real',
+      label: 'Prod. real',
+      align: 'right',
+      render: (row) =>
+        formatNumber(
+          row.produccionReal,
+        ),
+    },
+    {
+      key: 'consumoPlan',
+      label: 'Consumo plan',
+      align: 'right',
+      render: (row) =>
+        formatNumber(
+          row.consumoPlanificado,
+        ),
+    },
+    {
+      key: 'consumoReal',
+      label: 'Consumo real',
+      align: 'right',
+      render: (row) =>
+        formatNumber(
+          row.consumoReal,
+        ),
+    },
+    {
+      key: 'desviacion',
+      label: 'Desviación consumo',
+      align: 'right',
+      render: (row) =>
+        formatNumber(
+          row.desviacionConsumo,
         ),
     },
   ];
 
 export function AnalisisPage() {
-  const [filters, setFilters] =
-    useState<BiFilters>({
-      anio: 2026,
-    });
-
-  const [costosArea, setCostosArea] =
-    useState<CostoArea[]>([]);
+  const [
+    data,
+    setData,
+  ] = useState<AnalisisResumen | null>(
+    null,
+  );
 
   const [
-    horasExtraProduccion,
-    setHorasExtraProduccion,
-  ] = useState<
-    HorasExtraProduccion[]
-  >([]);
-
-  const [
-    diferencias,
-    setDiferencias,
-  ] = useState<
-    HorasExtraDiferencia[]
-  >([]);
-
-  const [
-    costosCentro,
-    setCostosCentro,
-  ] = useState<
-    CostoCentroCosto[]
-  >([]);
+    error,
+    setError,
+  ] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
-    Promise.all([
-      analisisMockService.getCostoPorArea(
-        filters,
-      ),
-      analisisMockService.getHorasExtraProduccion(
-        filters,
-      ),
-      analisisMockService.getHorasExtraDiferencias(
-        filters,
-      ),
-      analisisMockService.getCostoCentroCosto(
-        filters,
-      ),
-    ]).then(
-      ([
-        areaResult,
-        produccionResult,
-        diferenciasResult,
-        centroResult,
-      ]) => {
+    analisisService
+      .getResumen()
+      .then((result) => {
         if (!active) {
           return;
         }
 
-        setCostosArea(areaResult);
-        setHorasExtraProduccion(
-          produccionResult,
+        setData(result);
+        setError(null);
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        setError(
+          'No fue posible cargar el análisis desde la fuente configurada.',
         );
-        setDiferencias(
-          diferenciasResult,
-        );
-        setCostosCentro(
-          centroResult,
-        );
-      },
-    );
+      });
 
     return () => {
       active = false;
     };
-  }, [filters]);
+  }, []);
 
-  const costoIntegrado =
-    useMemo(
-      () =>
-        costosArea.reduce(
-          (total, item) =>
-            total +
-            item.costoTotal,
-          0,
-        ),
-      [costosArea],
-    );
+  const laboralChart = useMemo(
+    () =>
+      data?.laboral.map((item) => ({
+        area: item.area,
+        asistencia:
+          item.horasExtraAsistencia,
+        remuneradas:
+          item.horasExtraRemuneradas,
+      })) ?? [],
+    [data],
+  );
 
-  const mayorArea =
-    costosArea[0];
-
-  const totalHorasExtra =
-    useMemo(
-      () =>
-        diferencias.reduce(
-          (total, item) =>
-            total +
-            item.horasRegistradas,
-          0,
-        ),
-      [diferencias],
-    );
-
-  const produccionReal =
-    horasExtraProduccion[0]
-      ?.produccion ?? 0;
-
-  const hasData =
-    costosArea.some(
-      (item) =>
-        item.costoTotal > 0,
-    );
-
-  const costoAreaChart =
-    costosArea.map((item) => ({
-      label: item.area,
-      remuneraciones:
-        item.remuneraciones,
-      compras: item.compras,
-      contabilidad:
-        item.gastosContables,
-    }));
-
-  const costoCentroChart =
-    costosCentro.map((item) => ({
-      label: item.centroCosto,
-      value: item.costoTotal,
-    }));
-
-  const diferenciaChart =
-    diferencias.map((item) => ({
-      label: item.area,
-      registradas:
-        item.horasRegistradas,
-      pagadas: item.horasPagadas,
-    }));
+  const financieroChart = useMemo(
+    () =>
+      data?.comprasContabilidad.map(
+        (item) => ({
+          mes: monthNames[
+            item.mes - 1
+          ],
+          compras:
+            item.totalCompras,
+          debe:
+            item.totalDebe,
+          haber:
+            item.totalHaber,
+        }),
+      ) ?? [],
+    [data],
+  );
 
   return (
     <section className="module-page">
@@ -270,76 +332,83 @@ export function AnalisisPage() {
           </h1>
 
           <p>
-            Cruce analítico de costos,
-            horas extra y producción a
-            partir de los módulos mock
-            disponibles.
+            Análisis multidominio basado
+            en relaciones y períodos
+            efectivamente disponibles
+            en el Data Warehouse.
           </p>
         </div>
       </div>
 
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-      />
-
-      {!hasData ? (
+      {error ? (
         <AlertCard
-          tone="info"
-          title="Sin datos integrados"
-          description="No existen datos mock suficientes para la combinación de filtros seleccionada."
+          tone="danger"
+          title="Error al cargar análisis"
+          description={error}
         />
       ) : null}
 
-      {hasData ? (
+      {data ? (
         <>
-          <div className="kpi-grid analisis-kpi-grid">
+          <div
+            style={{
+              marginBottom: '1rem',
+            }}
+          >
+            <AlertCard
+              tone="info"
+              title="Criterio de integración"
+              description={
+                'Los dominios se cruzan solo cuando existe compatibilidad temporal y semántica validada. No se suman magnitudes de períodos distintos.'
+              }
+            />
+          </div>
+
+          <div className="kpi-grid">
             <KpiCard
-              title="Costo integrado"
+              title="Costo empresa"
               value={formatCurrency(
-                costoIntegrado,
+                data.kpis
+                  .costoEmpresaJulio2026,
               )}
-              helper="remuneraciones + compras + gastos"
+              helper="Remuneraciones · Julio 2026"
               icon={Banknote}
             />
 
             <KpiCard
-              title="Área de mayor costo"
-              value={
-                mayorArea?.area ?? '—'
-              }
-              helper={
-                mayorArea
-                  ? formatCurrency(
-                      mayorArea.costoTotal,
-                    )
-                  : 'sin datos'
-              }
-              icon={Building2}
-            />
-
-            <KpiCard
-              title="Horas extra registradas"
-              value={formatNumber(
-                totalHorasExtra,
-              )}
-              helper="todas las áreas filtradas"
+              title="Horas extra asistencia"
+              value={`${formatNumber(
+                data.kpis
+                  .horasExtraAsistencia,
+              )} h`}
+              helper="27–29 Julio 2026"
               icon={Clock3}
             />
 
             <KpiCard
-              title="Producción real"
-              value={formatNumber(
-                produccionReal,
+              title="Compras acumuladas"
+              value={formatCurrency(
+                data.kpis
+                  .comprasEneroMayo2025,
               )}
-              helper="unidades producidas"
+              helper="Enero–Mayo 2025"
+              icon={PackageSearch}
+            />
+
+            <KpiCard
+              title="Cumplimiento producción"
+              value={`${percentFormatter.format(
+                data.kpis
+                  .cumplimientoProduccion,
+              )} %`}
+              helper="Agosto 2026"
               icon={Factory}
             />
           </div>
 
           <ChartCard
-            title="Composición de costos por área"
-            description="Comparación integrada de remuneraciones, compras y gastos contables."
+            title="Análisis laboral · Julio 2026"
+            description="Horas extra registradas en Asistencia frente a horas extra consideradas en Remuneraciones. La cobertura temporal no es equivalente."
           >
             <div className="chart-demo analisis-cost-chart">
               <ResponsiveContainer
@@ -347,11 +416,79 @@ export function AnalisisPage() {
                 height="100%"
               >
                 <BarChart
-                  data={costoAreaChart}
+                  data={laboralChart}
                   margin={{
                     top: 16,
                     right: 24,
                     left: 12,
+                    bottom: 55,
+                  }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                  />
+
+                  <XAxis
+                    dataKey="area"
+                    interval={0}
+                    height={75}
+                    angle={-18}
+                    textAnchor="end"
+                  />
+
+                  <YAxis />
+
+                  <Tooltip />
+
+                  <Legend />
+
+                  <Bar
+                    dataKey="asistencia"
+                    name="HE Asistencia"
+                    fill="#1f4e78"
+                    radius={[5, 5, 0, 0]}
+                  />
+
+                  <Bar
+                    dataKey="remuneradas"
+                    name="HE Remuneraciones"
+                    fill="#6c8ebf"
+                    radius={[5, 5, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          <ChartCard
+            title="Detalle laboral por área"
+            description="Finanzas y Contabilidad no presenta registros de Asistencia en la cobertura disponible, pero sí datos mensuales de Remuneraciones."
+          >
+            <DataTable
+              columns={laboralColumns}
+              rows={data.laboral}
+              getRowKey={(row) =>
+                row.areaId
+              }
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Compras y Contabilidad · Enero–Mayo 2025"
+            description="Series paralelas de Compras, Debe y Haber. No representan una suma de costos ni se interpreta el Debe como gasto."
+          >
+            <div className="chart-demo analisis-cost-chart">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <BarChart
+                  data={financieroChart}
+                  margin={{
+                    top: 16,
+                    right: 24,
+                    left: 30,
                     bottom: 20,
                   }}
                 >
@@ -361,12 +498,7 @@ export function AnalisisPage() {
                   />
 
                   <XAxis
-                    dataKey="label"
-                    tickLine={false}
-                    axisLine={false}
-                    interval={0}
-                    height={42}
-                    tickMargin={10}
+                    dataKey="mes"
                   />
 
                   <YAxis
@@ -378,244 +510,91 @@ export function AnalisisPage() {
                   />
 
                   <Tooltip
-                    formatter={(
-                      value,
-                      name,
-                    ) => [
+                    formatter={(value) =>
                       formatCurrency(
                         Number(value),
-                      ),
-                      name,
-                    ]}
+                      )
+                    }
                   />
 
-                  <Bar
-                    dataKey="remuneraciones"
-                    name="Remuneraciones"
-                    stackId="costos"
-                    fill="var(--primary)"
-                  />
+                  <Legend />
 
                   <Bar
                     dataKey="compras"
                     name="Compras"
-                    stackId="costos"
-                    fill="var(--accent)"
+                    fill="#1f4e78"
                   />
 
                   <Bar
-                    dataKey="contabilidad"
-                    name="Gastos contables"
-                    stackId="costos"
-                    fill="var(--success)"
-                    radius={[5, 5, 0, 0]}
+                    dataKey="debe"
+                    name="Debe"
+                    fill="#6c8ebf"
+                  />
+
+                  <Bar
+                    dataKey="haber"
+                    name="Haber"
+                    fill="#70ad47"
                   />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </ChartCard>
 
-          <div className="dashboard-two-columns">
-            <ChartCard
-              title="Costo por centro de costo"
-              description="Costo integrado acumulado por centro de costo."
-            >
-              <div className="chart-demo analisis-secondary-chart">
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                >
-                  <BarChart
-                    data={
-                      costoCentroChart
-                    }
-                    layout="vertical"
-                    margin={{
-                      top: 12,
-                      right: 25,
-                      left: 35,
-                      bottom: 30,
-                    }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      horizontal={false}
-                    />
-
-                    <XAxis
-                      type="number"
-                      height={42}
-                      tickMargin={10}
-                      tickFormatter={(
-                        value,
-                      ) =>
-                        formatCompactCurrency(
-                          Number(value),
-                        )
-                      }
-                    />
-
-                    <YAxis
-                      type="category"
-                      dataKey="label"
-                      width={155}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-
-                    <Tooltip
-                      formatter={(
-                        value,
-                      ) => [
-                        formatCurrency(
-                          Number(value),
-                        ),
-                        'Costo total',
-                      ]}
-                    />
-
-                    <Bar
-                      dataKey="value"
-                      fill="var(--primary)"
-                      radius={[
-                        0,
-                        5,
-                        5,
-                        0,
-                      ]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartCard>
-
-            <ChartCard
-              title="Horas extra registradas vs pagadas"
-              description="Control cruzado entre Asistencia y Remuneraciones."
-            >
-              <div className="chart-demo analisis-secondary-chart">
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                >
-                  <BarChart
-                    data={diferenciaChart}
-                    margin={{
-                      top: 12,
-                      right: 20,
-                      left: 70,
-                      bottom: 70,
-                    }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                    />
-
-                    <XAxis
-                      dataKey="label"
-                      tickLine={false}
-                      axisLine={false}
-                      interval={0}
-                      height={90}
-                      tickMargin={12}
-                      angle={-25}
-                      textAnchor="end"
-                    />
-
-                    <YAxis
-                      width={50}
-                    />
-
-                    <Tooltip
-                      formatter={(
-                        value,
-                        name,
-                      ) => [
-                        formatNumber(
-                          Number(value),
-                        ),
-                        name,
-                      ]}
-                    />
-
-                    <Bar
-                      dataKey="registradas"
-                      name="Registradas"
-                      fill="var(--primary)"
-                      radius={[
-                        5,
-                        5,
-                        0,
-                        0,
-                      ]}
-                    />
-
-                    <Bar
-                      dataKey="pagadas"
-                      name="Pagadas"
-                      fill="var(--accent)"
-                      radius={[
-                        5,
-                        5,
-                        0,
-                        0,
-                      ]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartCard>
-          </div>
-
-          {horasExtraProduccion.length >
-          0 ? (
-            <ChartCard
-              title="Horas extra y producción"
-              description="Referencia conjunta del área de Producción para el período seleccionado."
-            >
-              <div className="analisis-production-summary">
-                <div>
-                  <span>
-                    Horas extra
-                  </span>
-                  <strong>
-                    {formatNumber(
-                      horasExtraProduccion[0]
-                        .horasExtras,
-                    )}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    Producción real
-                  </span>
-                  <strong>
-                    {formatNumber(
-                      horasExtraProduccion[0]
-                        .produccion,
-                    )}
-                  </strong>
-                </div>
-              </div>
-            </ChartCard>
-          ) : null}
-
           <ChartCard
-            title="Control de horas extra"
-            description="Diferencia entre horas registradas en Asistencia y horas consideradas en Remuneraciones."
+            title="Producción y consumo · Agosto 2026"
+            description="Cruce validado por número de orden y producto. No utiliza Área ni Centro de costo."
           >
             <DataTable
-              columns={
-                differenceColumns
+              columns={productionColumns}
+              rows={
+                data.produccionConsumo
               }
-              rows={diferencias}
               getRowKey={(row) =>
-                row.areaId
+                row.numeroOrden
               }
             />
           </ChartCard>
+
+          <div
+            style={{
+              marginTop: '1rem',
+            }}
+          >
+            <AlertCard
+              tone={
+                data
+                  .calidadCruceProduccion
+                  .cruceValido
+                  ? 'success'
+                  : 'warning'
+              }
+              title="Integridad Producción–Consumo"
+              description={
+                data
+                  .calidadCruceProduccion
+                  .cruceValido
+                  ? 'Todas las líneas de consumo encuentran una orden de producción asociada mediante número de orden y producto.'
+                  : `${data.calidadCruceProduccion.consumosHuerfanos} líneas de consumo no tienen una orden de producción asociada.`
+              }
+            />
+          </div>
+
+          <div
+            style={{
+              marginTop: '1rem',
+            }}
+          >
+            <AlertCard
+              tone="warning"
+              title="Consideraciones del análisis"
+              description={
+                data.advertencias.join(
+                  ' · ',
+                )
+              }
+            />
+          </div>
         </>
       ) : null}
     </section>
