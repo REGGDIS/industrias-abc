@@ -1,5 +1,9 @@
-import { Bell, CircleUserRound } from 'lucide-react';
+import { Bell, CircleUserRound, LogOut } from 'lucide-react';
 
+import { useNavigate } from 'react-router-dom';
+
+import { ROUTES } from '../../app/routes';
+import { useAuth } from '../../auth/AuthContext';
 import { runtimeConfig } from '../../config/runtime';
 import type { AuthUser } from '../../types/auth';
 
@@ -8,6 +12,23 @@ interface HeaderProps {
 }
 
 export function Header({ user }: HeaderProps) {
+  const navigate = useNavigate();
+
+  const {
+    logout,
+  } = useAuth();
+
+  function handleLogout() {
+    logout();
+
+    navigate(
+      ROUTES.login,
+      {
+        replace: true,
+      },
+    );
+  }
+
   return (
     <header className="app-header">
       <div>
@@ -26,6 +47,16 @@ export function Header({ user }: HeaderProps) {
           aria-label="Notificaciones"
         >
           <Bell size={19} />
+        </button>
+
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+          onClick={handleLogout}
+        >
+          <LogOut size={19} />
         </button>
 
         <div className="user-box">

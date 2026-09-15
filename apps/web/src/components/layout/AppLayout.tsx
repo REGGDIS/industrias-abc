@@ -1,16 +1,35 @@
-import { Outlet } from 'react-router-dom';
+import {
+  Outlet,
+} from 'react-router-dom';
 
-import { currentUserMock } from '../../mocks/auth.mock';
-import { Header } from './Header';
-import { Sidebar } from './Sidebar';
+import {
+  useAuth,
+} from '../../auth/AuthContext';
+
+import {
+  Header,
+} from './Header';
+
+import {
+  Sidebar,
+} from './Sidebar';
+
 
 export function AppLayout() {
+  const {
+    user,
+  } = useAuth();
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="app-shell">
-      <Sidebar user={currentUserMock} />
+      <Sidebar user={user} />
 
       <div className="app-main">
-        <Header user={currentUserMock} />
+        <Header user={user} />
 
         <main className="app-content">
           <Outlet />
