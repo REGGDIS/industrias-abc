@@ -1,0 +1,45 @@
+{
+  "run_id": "d5895ac7-8567-4a82-8032-19f5a9e0637e",
+  "proceso": "compras_etl",
+  "started_at": "2026-09-07T14:03:45.185923+00:00",
+  "status": "OK",
+  "stage": null,
+  "error": null,
+  "procesados": 55,
+  "validos": 53,
+  "review": 2,
+  "errores": 0,
+  "controles_error": 0,
+  "normalizacion": {
+    "procesados": 120,
+    "normalizados": 120,
+    "review": 0,
+    "errores": 0
+  },
+  "calidad": {
+    "procesados": 55,
+    "validos": 53,
+    "review": 2,
+    "errores": 0
+  },
+  "etapas": [
+    {
+      "nombre": "normalizacion",
+      "resultado": "OK",
+      "duracion_ms": 202
+    },
+    {
+      "nombre": "validaciones_calidad",
+      "resultado": "OK",
+      "duracion_ms": 155
+    },
+    {
+      "nombre": "pruebas_normalizacion",
+      "resultado": "OK",
+      "duracion_ms": 172
+    }
+  ],
+  "finished_at": "2026-09-07T14:03:45.730908+00:00",
+  "duration_seconds": 0.5309999999590218,
+  "duracion_ms": 530
+}

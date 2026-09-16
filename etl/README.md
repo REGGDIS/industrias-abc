@@ -1,3 +1,7 @@
-# ETL / ELT
+# ETL
 
-Aquí se desarrollarán los procesos de extracción, transformación, validación, homologación y carga desde las fuentes operacionales hacia staging y posteriormente hacia el Data Warehouse.
+Capa de extracción, transformación, validación, homologación y carga
+de datos de Industrias ABC.
+
+Esta estructura se completará progresivamente a medida que las fuentes
+operacionales y el Data Warehouse queden disponibles.

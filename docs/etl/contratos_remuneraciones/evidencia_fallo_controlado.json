@@ -1,0 +1,45 @@
+{
+  "run_id": "ab12cecf-c7d5-47ce-a79c-08d16edb46a0",
+  "proceso": "contratos_remuneraciones_etl",
+  "started_at": "2026-09-07T22:45:11.216036+00:00",
+  "finished_at": "2026-09-07T22:45:11.286804+00:00",
+  "duration_seconds": 0.06826289999298751,
+  "duracion_ms": 68,
+  "status": "ERROR",
+  "stage": "validacion",
+  "error": "Se detectaron registros con errores en los controles de calidad de Contratos y Remuneraciones.",
+  "procesados": 235,
+  "validos": 234,
+  "review": 0,
+  "errores": 1,
+  "warnings": 0,
+  "controles_error": 1,
+  "entidades": {
+    "empleado": 80,
+    "contrato": 21,
+    "liquidacion": 19,
+    "concepto_pago": 9,
+    "detalle_liquidacion": 106
+  },
+  "hallazgos": [
+    {
+      "entidad": "DetalleLiquidacion",
+      "identificador": 1,
+      "regla": "monto_negativo",
+      "severidad": "ERROR",
+      "detalle": "monto=-100"
+    }
+  ],
+  "etapas": [
+    {
+      "nombre": "lectura_staging",
+      "resultado": "OK",
+      "duracion_ms": 54
+    },
+    {
+      "nombre": "validacion",
+      "resultado": "ERROR",
+      "duracion_ms": 14
+    }
+  ]
+}

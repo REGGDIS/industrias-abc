@@ -1,0 +1,40 @@
+{
+  "run_id": "14e77245-9177-42ce-b13d-c6e05542332e",
+  "proceso": "compras_etl",
+  "started_at": "2026-09-07T14:06:08.012794+00:00",
+  "status": "ERROR",
+  "stage": "validaciones_calidad",
+  "error": "Se detectaron registros con errores en los controles de calidad de Compras.",
+  "procesados": 55,
+  "validos": 52,
+  "review": 3,
+  "errores": 1,
+  "controles_error": 1,
+  "normalizacion": {
+    "procesados": 120,
+    "normalizados": 120,
+    "review": 0,
+    "errores": 0
+  },
+  "calidad": {
+    "procesados": 55,
+    "validos": 52,
+    "review": 3,
+    "errores": 1
+  },
+  "etapas": [
+    {
+      "nombre": "normalizacion",
+      "resultado": "OK",
+      "duracion_ms": 313
+    },
+    {
+      "nombre": "validaciones_calidad",
+      "resultado": "ERROR",
+      "duracion_ms": 233
+    }
+  ],
+  "finished_at": "2026-09-07T14:06:08.557663+00:00",
+  "duration_seconds": 0.5470000000204891,
+  "duracion_ms": 547
+}

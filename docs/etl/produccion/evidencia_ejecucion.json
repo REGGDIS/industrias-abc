@@ -1,0 +1,39 @@
+{
+  "run_id": "d61f4f33-a3cf-4922-aa97-3e6cbe3ab06d",
+  "proceso": "produccion_etl",
+  "started_at": "2026-09-09T13:13:45.094601+00:00",
+  "finished_at": "2026-09-09T13:13:45.196816+00:00",
+  "duration_seconds": 0.09776619996409863,
+  "duracion_ms": 98,
+  "status": "OK",
+  "stage": null,
+  "error": null,
+  "procesados": 6,
+  "validos": 6,
+  "review": 0,
+  "errores": 0,
+  "warnings": 0,
+  "duplicados_exactos": 0,
+  "duplicados_clave": 0,
+  "controles_error": 0,
+  "hallazgos": [],
+  "etapas": [
+    {
+      "stage": "lectura_csv",
+      "status": "OK",
+      "duration_ms": 1,
+      "filas": 6
+    },
+    {
+      "stage": "lectura_mysql",
+      "status": "OK",
+      "duration_ms": 97,
+      "filas": 17
+    },
+    {
+      "stage": "validacion",
+      "status": "OK",
+      "duration_ms": 0
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+import {
+  dashboardMockRecords,
+} from '../../mocks/dashboard.mock';
+import type {
+  DashboardResumen,
+} from '../../types/dashboard';
+import type { DashboardService } from '../contracts/dashboard.service';
+
+function sum(
+  values: number[],
+): number {
+  return values.reduce(
+    (total, value) => total + value,
+    0,
+  );
+}
+
+function getLatestPeriod() {
+  const latestYear = Math.max(
+    ...dashboardMockRecords.map(
+      (record) => record.anio,
+    ),
+  );
+
+  const latestMonth = Math.max(
+    ...dashboardMockRecords
+      .filter(
+        (record) =>
+          record.anio === latestYear,
+      )
+      .map(
+        (record) => record.mes,
+      ),
+  );
+
+  return {
+    anio: latestYear,
+    mes: latestMonth,
+  };
+}
+
+export class DashboardMockService
+  implements DashboardService
+{
+  async getResumen(): Promise<DashboardResumen> {
+    const periodo = getLatestPeriod();
+
+    const latest = dashboardMockRecords.filter(
+      (record) =>
+        record.anio === periodo.anio &&
+        record.mes === periodo.mes,
+    );
+
+    const trabajadoresActivos = sum(
+      latest.map(
+        (record) =>
+          record.trabajadoresActivos,
+      ),
+    );
+
+    const horasExtras = sum(
+      latest.map(
+        (record) => record.horasExtras,
+      ),
+    );
+
+    const costoRemuneraciones = sum(
+      latest.map(
+        (record) =>
+          record.costoRemuneraciones,
+      ),
+    );
+
+    const totalCompras = sum(
+      latest.map(
+        (record) => record.totalCompras,
+      ),
+    );
+
+    const produccionPlanificada = sum(
+      latest.map(
+        (record) =>
+          record.produccionPlanificada,
+      ),
+    );
+
+    const produccionReal = sum(
+      latest.map(
+        (record) =>
+          record.produccionReal,
+      ),
+    );
+
+    const cumplimientoProduccion =
+      produccionPlanificada === 0
+        ? 0
+        : (
+            produccionReal /
+            produccionPlanificada
+          ) * 100;
+
+    const fechaMock =
+      `${periodo.anio}-` +
+      `${String(periodo.mes).padStart(
+        2,
+        '0',
+      )}-01`;
+
+    return {
+      kpis: {
+        trabajadoresActivos,
+        empleadosConAsistencia:
+          trabajadoresActivos,
+
+        horasExtrasAsistencia:
+          horasExtras,
+        minutosAtraso: 0,
+        diasAusentes: 0,
+
+        costoRemuneraciones,
+        sueldoLiquido: 0,
+
+        totalCompras,
+        ordenesCompra: 0,
+        ordenesCompraEfectivas: 0,
+
+        movimientosContables: 0,
+        totalDebeContabilidad: 0,
+        totalHaberContabilidad: 0,
+        saldoContabilidad: 0,
+
+        produccionPlanificada,
+        produccionReal,
+        produccionRechazada: 0,
+        cumplimientoProduccion,
+        ordenesProduccion: 0,
+      },
+
+      periodos: {
+        asistencia: fechaMock,
+        remuneraciones: fechaMock,
+        compras: periodo,
+        contabilidad: periodo,
+        produccion: periodo,
+      },
+
+      cobertura: [
+        {
+          dominio: 'ASISTENCIA',
+          fechaDesde: '2025-01-01',
+          fechaHasta: fechaMock,
+          registros:
+            dashboardMockRecords.length,
+        },
+        {
+          dominio: 'COMPRAS',
+          fechaDesde: '2025-01-01',
+          fechaHasta: fechaMock,
+          registros:
+            dashboardMockRecords.length,
+        },
+        {
+          dominio: 'CONTABILIDAD',
+          fechaDesde: '2025-01-01',
+          fechaHasta: fechaMock,
+          registros:
+            dashboardMockRecords.length,
+        },
+        {
+          dominio: 'PRODUCCION',
+          fechaDesde: '2025-01-01',
+          fechaHasta: fechaMock,
+          registros:
+            dashboardMockRecords.length,
+        },
+        {
+          dominio: 'REMUNERACIONES',
+          fechaDesde: '2025-01-01',
+          fechaHasta: fechaMock,
+          registros:
+            dashboardMockRecords.length,
+        },
+      ],
+
+      advertencias: [
+        (
+          'Modo mock activo: los valores mostrados '
+          + 'son datos sintéticos para demostración.'
+        ),
+      ],
+    };
+  }
+}
+
+export const dashboardMockService =
+  new DashboardMockService();

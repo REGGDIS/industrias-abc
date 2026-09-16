@@ -1,0 +1,37 @@
+{
+  "run_id": "900176ef-c209-45ae-84c5-ebba34a8c10c",
+  "proceso": "contratos_remuneraciones_etl",
+  "started_at": "2026-09-07T22:43:46.688853+00:00",
+  "finished_at": "2026-09-07T22:43:46.761809+00:00",
+  "duration_seconds": 0.07270080002490431,
+  "duracion_ms": 72,
+  "status": "OK",
+  "stage": null,
+  "error": null,
+  "procesados": 235,
+  "validos": 235,
+  "review": 0,
+  "errores": 0,
+  "warnings": 0,
+  "controles_error": 0,
+  "entidades": {
+    "empleado": 80,
+    "contrato": 21,
+    "liquidacion": 19,
+    "concepto_pago": 9,
+    "detalle_liquidacion": 106
+  },
+  "hallazgos": [],
+  "etapas": [
+    {
+      "nombre": "lectura_staging",
+      "resultado": "OK",
+      "duracion_ms": 56
+    },
+    {
+      "nombre": "validacion",
+      "resultado": "OK",
+      "duracion_ms": 15
+    }
+  ]
+}
