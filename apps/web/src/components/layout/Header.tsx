@@ -1,4 +1,4 @@
-import { Bell, CircleUserRound, LogOut } from 'lucide-react';
+import { CircleUserRound, LogOut } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -6,6 +6,7 @@ import { ROUTES } from '../../app/routes';
 import { useAuth } from '../../auth/AuthContext';
 import { runtimeConfig } from '../../config/runtime';
 import type { AuthUser } from '../../types/auth';
+import { NotificationsPanel } from './NotificationsPanel';
 
 interface HeaderProps {
   user: AuthUser;
@@ -41,13 +42,7 @@ export function Header({ user }: HeaderProps) {
           Datos: {runtimeConfig.dataMode.toUpperCase()}
         </span>
 
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Notificaciones"
-        >
-          <Bell size={19} />
-        </button>
+        <NotificationsPanel user={user} />
 
         <button
           type="button"
