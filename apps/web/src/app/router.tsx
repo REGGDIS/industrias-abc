@@ -256,7 +256,7 @@ export const router =
       path: '/',
       element: (
         <Navigate
-          to={ROUTES.dashboard}
+          to={ROUTES.login}
           replace
         />
       ),
@@ -266,7 +266,7 @@ export const router =
       path: '*',
       element: (
         <Navigate
-          to={ROUTES.dashboard}
+          to={ROUTES.login}
           replace
         />
       ),
