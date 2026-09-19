@@ -25,5 +25,14 @@ class Settings:
     audit_user: str = os.getenv("AUDIT_DB_USER", "postgres")
     audit_password: str = os.getenv("AUDIT_DB_PASSWORD", "")
 
+    cors_origins: tuple[str, ...] = tuple(
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:5173,http://127.0.0.1:5173",
+        ).split(",")
+        if origin.strip()
+    )
+
 
 settings = Settings()
