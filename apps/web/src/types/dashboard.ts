@@ -22,6 +22,7 @@ export interface DashboardKpis {
   produccionReal: number;
   produccionRechazada: number;
   cumplimientoProduccion: number;
+  tasaRechazoProduccion: number;
   ordenesProduccion: number;
 }
 
