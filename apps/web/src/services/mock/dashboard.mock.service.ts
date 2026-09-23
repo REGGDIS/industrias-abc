@@ -169,6 +169,39 @@ export class DashboardMockService
 
       periodoCentrosCosto: 2025,
 
+      evolucionMensual: [
+        {
+          anio: 2025,
+          mes: 1,
+          label: 'Ene 2025',
+          value: 3500000,
+        },
+        {
+          anio: 2025,
+          mes: 2,
+          label: 'Feb 2025',
+          value: 0,
+        },
+        {
+          anio: 2025,
+          mes: 3,
+          label: 'Mar 2025',
+          value: 1800000,
+        },
+        {
+          anio: 2025,
+          mes: 4,
+          label: 'Abr 2025',
+          value: 950000,
+        },
+        {
+          anio: 2025,
+          mes: 5,
+          label: 'May 2025',
+          value: 0,
+        },
+      ],
+
       cobertura: [
         {
           dominio: 'ASISTENCIA',

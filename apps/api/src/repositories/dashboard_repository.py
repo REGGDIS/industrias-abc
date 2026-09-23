@@ -266,6 +266,50 @@ def obtener_resumen_dashboard():
             centros_costo_rows = cursor.fetchall()
 
             # ==========================================================
+            # EVOLUCIÓN MENSUAL DE GASTOS
+            # Último año con cuentas contables de tipo GASTOS.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH ultimo_anio_gastos AS (
+                    SELECT MAX(df.anio) AS anio
+                    FROM dw.fact_contabilidad fc
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fc.fecha_key
+                    JOIN dw.dim_cuenta_contable cta
+                      ON cta.cuenta_key = fc.cuenta_key
+                    WHERE cta.tipo_cuenta = 'GASTOS'
+                )
+                SELECT
+                    uag.anio,
+                    df.mes,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN cta.tipo_cuenta = 'GASTOS'
+                                THEN fc.debe
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS value
+                FROM dw.fact_contabilidad fc
+                JOIN dw.dim_fecha df
+                  ON df.fecha_key = fc.fecha_key
+                JOIN dw.dim_cuenta_contable cta
+                  ON cta.cuenta_key = fc.cuenta_key
+                CROSS JOIN ultimo_anio_gastos uag
+                WHERE df.anio = uag.anio
+                GROUP BY
+                    uag.anio,
+                    df.mes
+                ORDER BY df.mes;
+                """
+            )
+
+            evolucion_mensual_rows = cursor.fetchall()
+
+            # ==========================================================
             # PRODUCCIÓN
             # Último mes disponible según fecha de inicio.
             # ==========================================================
@@ -442,6 +486,34 @@ def obtener_resumen_dashboard():
         else None
     )
 
+    nombres_meses = [
+        "Ene",
+        "Feb",
+        "Mar",
+        "Abr",
+        "May",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dic",
+    ]
+
+    evolucion_mensual = [
+        {
+            "anio": int(row["anio"]),
+            "mes": int(row["mes"]),
+            "label": (
+                f"{nombres_meses[int(row['mes']) - 1]} "
+                f"{int(row['anio'])}"
+            ),
+            "value": _number(row["value"]),
+        }
+        for row in evolucion_mensual_rows
+    ]
+
     return {
         "kpis": {
             "totalTrabajadores": (
@@ -585,6 +657,8 @@ def obtener_resumen_dashboard():
             principales_centros_costo,
         "periodoCentrosCosto":
             anio_centros_costo,
+        "evolucionMensual":
+            evolucion_mensual,
         "cobertura": cobertura,
         "advertencias": [
             (

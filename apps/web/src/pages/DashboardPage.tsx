@@ -34,12 +34,13 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
-
 
 const numberFormatter =
   new Intl.NumberFormat('es-CL');
@@ -529,6 +530,69 @@ export function DashboardPage() {
                     radius={[0, 5, 5, 0]}
                   />
                 </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          <ChartCard
+            title="Evolución mensual de gastos"
+            description={
+              `Gastos contables por mes · ${
+                data.evolucionMensual[0]?.anio
+                  ?? 'Sin período'
+              }`
+            }
+          >
+            <div className="chart-demo">
+              <ResponsiveContainer
+                width="100%"
+                height={280}
+              >
+                <LineChart
+                  data={data.evolucionMensual}
+                  margin={{
+                    left: 45,
+                    right: 25,
+                    top: 10,
+                  }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                  />
+
+                  <XAxis
+                    dataKey="label"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+
+                  <YAxis
+                    width={95}
+                    tickFormatter={(value) =>
+                      formatMoney(
+                        Number(value),
+                      )
+                    }
+                  />
+
+                  <Tooltip
+                    formatter={(value) =>
+                      formatMoney(
+                        Number(value),
+                      )
+                    }
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="var(--primary)"
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </ChartCard>
