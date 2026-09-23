@@ -332,7 +332,6 @@ export function DashboardPage() {
               icon={Users}
             />
 
-
             <KpiCard
               title="Horas extra"
               value={
@@ -381,6 +380,33 @@ export function DashboardPage() {
               icon={Banknote}
             />
 
+            <KpiCard
+              title="Costo horas extra"
+              value={
+                formatMoney(
+                  data.kpis.costoHorasExtra,
+                )
+              }
+              helper={
+                'Remuneraciones · '
+                + (
+                  data.periodos.remuneraciones
+                    ? `${
+                        monthNames[
+                          Number(
+                            data.periodos.remuneraciones
+                              .split('-')[1],
+                          ) - 1
+                        ]
+                      } ${
+                        data.periodos.remuneraciones
+                          .split('-')[0]
+                      }`
+                    : 'Sin dato'
+                )
+              }
+              icon={Banknote}
+            />
 
             <KpiCard
               title="Compras"
