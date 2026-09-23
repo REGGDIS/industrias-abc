@@ -195,12 +195,24 @@ def build_fact_rows(data: dict[str, list[dict]], context: dict) -> tuple[list[di
     contratos_fuente = {row["contrato_id"]: row for row in data["contratos"]}
     conceptos = {row["concepto_id"]: row for row in data["conceptos"]}
 
-    totals = defaultdict(lambda: {"HABER": Decimal("0"), "DESCUENTO": Decimal("0"), "APORTE": Decimal("0")})
+    totals = defaultdict(
+        lambda: {
+            "HABER": Decimal("0"),
+            "DESCUENTO": Decimal("0"),
+            "APORTE": Decimal("0"),
+            "HORAS_EXTRA": Decimal("0"),
+        }
+    )
     for detail in data["detalles"]:
         concepto = conceptos.get(detail["concepto_id"])
         if concepto is None:
             continue
-        totals[detail["liquidacion_id"]][concepto["tipo"]] += Decimal(str(detail["monto"]))
+
+        monto = Decimal(str(detail["monto"]))
+        totals[detail["liquidacion_id"]][concepto["tipo"]] += monto
+
+        if concepto["codigo"] == "HORAS_EXTRA":
+            totals[detail["liquidacion_id"]]["HORAS_EXTRA"] += monto
 
     prepared = []
     rejected = []
@@ -252,6 +264,7 @@ def build_fact_rows(data: dict[str, list[dict]], context: dict) -> tuple[list[di
             "periodo": row["periodo"],
             "sueldo_base": row["sueldo_base"],
             "horas_extras": row["horas_extras"],
+            "costo_horas_extra": agg["HORAS_EXTRA"],
             "sueldo_imponible": row["sueldo_imponible"],
             "sueldo_liquido": row["sueldo_liquido"],
             "costo_empresa": row["costo_empresa"],
@@ -270,7 +283,7 @@ def _classify_and_load_facts(cursor, rows: list[dict]) -> dict:
         """
         SELECT empleado_key, periodo, fecha_key, area_key, cargo_key,
                centro_costo_key, contrato_key, sueldo_base, horas_extras,
-               sueldo_imponible, sueldo_liquido, costo_empresa,
+               costo_horas_extra, sueldo_imponible, sueldo_liquido, costo_empresa,
                total_haberes, total_descuentos, total_aportes, cantidad_registros
         FROM dw.fact_remuneraciones
         """
@@ -282,7 +295,7 @@ def _classify_and_load_facts(cursor, rows: list[dict]) -> dict:
         desired = (
             row["fecha_key"], row["area_key"], row["cargo_key"], row["centro_costo_key"],
             row["contrato_key"], row["sueldo_base"], row["horas_extras"],
-            row["sueldo_imponible"], row["sueldo_liquido"], row["costo_empresa"],
+            row["costo_horas_extra"], row["sueldo_imponible"], row["sueldo_liquido"], row["costo_empresa"],
             row["total_haberes"], row["total_descuentos"], row["total_aportes"],
             row["cantidad_registros"],
         )

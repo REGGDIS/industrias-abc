@@ -7,6 +7,7 @@ export interface DashboardKpis {
   diasAusentes: number;
 
   costoRemuneraciones: number;
+  costoHorasExtra: number;
   sueldoLiquido: number;
 
   totalCompras: number;

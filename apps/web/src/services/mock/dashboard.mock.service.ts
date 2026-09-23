@@ -135,6 +135,7 @@ export class DashboardMockService
         diasAusentes: 0,
 
         costoRemuneraciones,
+        costoHorasExtra: 782082,
         sueldoLiquido: 0,
 
         totalCompras,

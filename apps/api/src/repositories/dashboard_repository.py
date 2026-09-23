@@ -112,7 +112,11 @@ def obtener_resumen_dashboard():
                     COALESCE(
                         SUM(fr.horas_extras),
                         0
-                    ) AS horas_extras_remuneradas
+                    ) AS horas_extras_remuneradas,
+                    COALESCE(
+                        SUM(fr.costo_horas_extra),
+                        0
+                    ) AS costo_horas_extra
                 FROM dw.fact_remuneraciones fr
                 JOIN ultimo_periodo up
                   ON up.fecha_key = fr.fecha_key
@@ -554,6 +558,11 @@ def obtener_resumen_dashboard():
             ),
             "costoRemuneraciones": (
                 _number(remuneraciones["costo_empresa"])
+                if remuneraciones
+                else 0
+            ),
+            "costoHorasExtra": (
+                _number(remuneraciones["costo_horas_extra"])
                 if remuneraciones
                 else 0
             ),
