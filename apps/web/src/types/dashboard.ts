@@ -30,6 +30,11 @@ export interface DashboardPeriodoMes {
   mes: number;
 }
 
+export interface DashboardCentroCosto {
+  label: string;
+  value: number;
+}
+
 export interface DashboardPeriodos {
   rrhh: string | null;
   asistencia: string | null;
@@ -49,6 +54,13 @@ export interface DashboardCobertura {
 export interface DashboardResumen {
   kpis: DashboardKpis;
   periodos: DashboardPeriodos;
+
+  principalesCentrosCosto:
+    DashboardCentroCosto[];
+
+  periodoCentrosCosto:
+    number | null;
+
   cobertura: DashboardCobertura[];
   advertencias: string[];
 }

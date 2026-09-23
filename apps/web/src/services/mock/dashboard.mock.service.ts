@@ -152,6 +152,23 @@ export class DashboardMockService
         produccion: periodo,
       },
 
+      principalesCentrosCosto: [
+        {
+          label: 'ADMINISTRACIÓN GENERAL',
+          value: 3500000,
+        },
+        {
+          label: 'MANTENCIÓN INDUSTRIAL',
+          value: 1800000,
+        },
+        {
+          label: 'LOGÍSTICA Y BODEGA',
+          value: 950000,
+        },
+      ],
+
+      periodoCentrosCosto: 2025,
+
       cobertura: [
         {
           dominio: 'ASISTENCIA',

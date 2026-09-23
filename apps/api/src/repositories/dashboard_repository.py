@@ -222,6 +222,50 @@ def obtener_resumen_dashboard():
             contabilidad = cursor.fetchone()
 
             # ==========================================================
+            # PRINCIPALES CENTROS DE COSTO
+            # Último año con cuentas contables de tipo GASTOS.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH ultimo_anio_gastos AS (
+                    SELECT MAX(df.anio) AS anio
+                    FROM dw.fact_contabilidad fc
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fc.fecha_key
+                    JOIN dw.dim_cuenta_contable cta
+                      ON cta.cuenta_key = fc.cuenta_key
+                    WHERE cta.tipo_cuenta = 'GASTOS'
+                )
+                SELECT
+                    uag.anio,
+                    dcc.nombre_centro_costo AS label,
+                    COALESCE(
+                        SUM(fc.debe),
+                        0
+                    ) AS value
+                FROM dw.fact_contabilidad fc
+                JOIN dw.dim_fecha df
+                  ON df.fecha_key = fc.fecha_key
+                JOIN dw.dim_cuenta_contable cta
+                  ON cta.cuenta_key = fc.cuenta_key
+                LEFT JOIN dw.dim_centro_costo dcc
+                  ON dcc.centro_costo_key =
+                     fc.centro_costo_key
+                CROSS JOIN ultimo_anio_gastos uag
+                WHERE df.anio = uag.anio
+                  AND cta.tipo_cuenta = 'GASTOS'
+                GROUP BY
+                    uag.anio,
+                    fc.centro_costo_key,
+                    dcc.nombre_centro_costo
+                ORDER BY value DESC
+                LIMIT 5;
+                """
+            )
+
+            centros_costo_rows = cursor.fetchall()
+
+            # ==========================================================
             # PRODUCCIÓN
             # Último mes disponible según fecha de inicio.
             # ==========================================================
@@ -381,6 +425,23 @@ def obtener_resumen_dashboard():
         for row in cobertura_rows
     ]
 
+    principales_centros_costo = [
+        {
+            "label": (
+                row["label"]
+                or "Sin centro de costo"
+            ),
+            "value": _number(row["value"]),
+        }
+        for row in centros_costo_rows
+    ]
+
+    anio_centros_costo = (
+        int(centros_costo_rows[0]["anio"])
+        if centros_costo_rows
+        else None
+    )
+
     return {
         "kpis": {
             "totalTrabajadores": (
@@ -520,6 +581,10 @@ def obtener_resumen_dashboard():
                 else None
             ),
         },
+        "principalesCentrosCosto":
+            principales_centros_costo,
+        "periodoCentrosCosto":
+            anio_centros_costo,
         "cobertura": cobertura,
         "advertencias": [
             (
