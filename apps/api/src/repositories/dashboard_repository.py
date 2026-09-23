@@ -18,6 +18,37 @@ def obtener_resumen_dashboard():
         with connection.cursor() as cursor:
 
             # ==========================================================
+            # RRHH
+            # Dotación total según la última versión disponible
+            # de DIM_EMPLEADO.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH fecha_corte AS (
+                    SELECT MAX(fecha_desde) AS fecha
+                    FROM dw.dim_empleado
+                    WHERE empleado_key <> 0
+                )
+                SELECT
+                    fc.fecha,
+                    COUNT(
+                        DISTINCT e.rut_normalizado
+                    ) AS total_trabajadores
+                FROM fecha_corte fc
+                LEFT JOIN dw.dim_empleado e
+                  ON e.empleado_key <> 0
+                 AND e.fecha_desde <= fc.fecha
+                 AND (
+                        e.fecha_hasta IS NULL
+                        OR fc.fecha < e.fecha_hasta
+                 )
+                GROUP BY fc.fecha;
+                """
+            )
+
+            rrhh = cursor.fetchone()
+
+            # ==========================================================
             # ASISTENCIA
             # Último día disponible.
             # ==========================================================
@@ -352,9 +383,9 @@ def obtener_resumen_dashboard():
 
     return {
         "kpis": {
-            "trabajadoresActivos": (
-                int(remuneraciones["empleados"])
-                if remuneraciones
+            "totalTrabajadores": (
+                int(rrhh["total_trabajadores"])
+                if rrhh
                 else 0
             ),
             "empleadosConAsistencia": (
@@ -449,6 +480,11 @@ def obtener_resumen_dashboard():
             ),
         },
         "periodos": {
+            "rrhh": (
+                rrhh["fecha"].isoformat()
+                if rrhh and rrhh["fecha"]
+                else None
+            ),
             "asistencia": (
                 asistencia["fecha"].isoformat()
                 if asistencia

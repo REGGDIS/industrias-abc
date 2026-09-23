@@ -51,6 +51,13 @@ export class DashboardMockService
         record.mes === periodo.mes,
     );
 
+    const totalTrabajadores = sum(
+      latest.map(
+        (record) =>
+          record.totalTrabajadores,
+      ),
+    );
+
     const trabajadoresActivos = sum(
       latest.map(
         (record) =>
@@ -108,7 +115,7 @@ export class DashboardMockService
 
     return {
       kpis: {
-        trabajadoresActivos,
+        totalTrabajadores,
         empleadosConAsistencia:
           trabajadoresActivos,
 
@@ -137,6 +144,7 @@ export class DashboardMockService
       },
 
       periodos: {
+        rrhh: fechaMock,
         asistencia: fechaMock,
         remuneraciones: fechaMock,
         compras: periodo,

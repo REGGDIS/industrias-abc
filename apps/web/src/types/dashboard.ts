@@ -1,5 +1,5 @@
 export interface DashboardKpis {
-  trabajadoresActivos: number;
+  totalTrabajadores: number;
   empleadosConAsistencia: number;
 
   horasExtrasAsistencia: number;
@@ -31,6 +31,7 @@ export interface DashboardPeriodoMes {
 }
 
 export interface DashboardPeriodos {
+  rrhh: string | null;
   asistencia: string | null;
   remuneraciones: string | null;
   compras: DashboardPeriodoMes | null;
