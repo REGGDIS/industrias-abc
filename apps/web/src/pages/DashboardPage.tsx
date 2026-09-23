@@ -30,6 +30,16 @@ import type {
   DashboardResumen,
 } from '../types/dashboard';
 
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+
 
 const numberFormatter =
   new Intl.NumberFormat('es-CL');
@@ -459,6 +469,69 @@ export function DashboardPage() {
             />
           </div>
 
+          <ChartCard
+            title="Principales centros de costo"
+            description={
+              `Gastos contables acumulados · ${
+                data.periodoCentrosCosto
+                  ?? 'Sin período'
+              }`
+            }
+          >
+            <div className="chart-demo">
+              <ResponsiveContainer
+                width="100%"
+                height={280}
+              >
+                <BarChart
+                  data={
+                    data.principalesCentrosCosto
+                  }
+                  layout="vertical"
+                  margin={{
+                    left: 35,
+                    right: 25,
+                  }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    horizontal={false}
+                  />
+
+                  <XAxis
+                    type="number"
+                    tickFormatter={(value) =>
+                      formatMoney(
+                        Number(value),
+                      )
+                    }
+                  />
+
+                  <YAxis
+                    type="category"
+                    dataKey="label"
+                    width={190}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+
+                  <Tooltip
+                    formatter={(value) =>
+                      formatMoney(
+                        Number(value),
+                      )
+                    }
+                  />
+
+                  <Bar
+                    dataKey="value"
+                    fill="var(--primary)"
+                    radius={[0, 5, 5, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
 
           <ChartCard
             title="Cobertura de datos por dominio"
