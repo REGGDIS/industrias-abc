@@ -252,6 +252,14 @@ export class DashboardMockService
         },
       ],
 
+      costoLaboralVsCompras: {
+        comparable: false,
+        anio: null,
+        mes: null,
+        costoLaboral: 0,
+        totalCompras: 0,
+      },
+
       advertencias: [
         (
           'Modo mock activo: los valores mostrados '

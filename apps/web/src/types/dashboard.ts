@@ -60,6 +60,14 @@ export interface DashboardCobertura {
   registros: number;
 }
 
+export interface DashboardCostoLaboralVsCompras {
+  comparable: boolean;
+  anio: number | null;
+  mes: number | null;
+  costoLaboral: number;
+  totalCompras: number;
+}
+
 export interface DashboardResumen {
   kpis: DashboardKpis;
   periodos: DashboardPeriodos;
@@ -75,4 +83,6 @@ export interface DashboardResumen {
 
   cobertura: DashboardCobertura[];
   advertencias: string[];
+  costoLaboralVsCompras:
+    DashboardCostoLaboralVsCompras;
 }
