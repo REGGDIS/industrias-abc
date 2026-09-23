@@ -224,8 +224,6 @@ export function DashboardPage() {
   useEffect(() => {
     let active = true;
 
-    setError(null);
-
     dashboardService
       .getResumen()
       .then((result) => {
@@ -308,29 +306,16 @@ export function DashboardPage() {
 
           <div className="kpi-grid">
             <KpiCard
-              title="Trabajadores remunerados"
+              title="Total de trabajadores"
               value={
                 numberFormatter.format(
-                  data.kpis
-                    .trabajadoresActivos,
+                  data.kpis.totalTrabajadores,
                 )
               }
               helper={
-                'Remuneraciones · '
-                + (
-                  data.periodos.remuneraciones
-                    ? `${
-                        monthNames[
-                          Number(
-                            data.periodos.remuneraciones
-                              .split('-')[1],
-                          ) - 1
-                        ]
-                      } ${
-                        data.periodos.remuneraciones
-                          .split('-')[0]
-                      }`
-                    : 'Sin dato'
+                'RRHH · '
+                + formatDate(
+                  data.periodos.rrhh,
                 )
               }
               icon={Users}
