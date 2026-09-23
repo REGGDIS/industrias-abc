@@ -78,6 +78,16 @@ export interface DashboardCoberturaOt {
   empleadosRemunerados: number;
 }
 
+export interface DashboardOtVsProduccion {
+  comparable: boolean;
+  anio: number | null;
+  mes: number | null;
+  horasExtraRemuneradas: number;
+  produccionPlanificada: number;
+  produccionReal: number;
+  produccionRechazada: number;
+}
+
 export interface DashboardResumen {
   kpis: DashboardKpis;
   periodos: DashboardPeriodos;
@@ -96,4 +106,5 @@ export interface DashboardResumen {
   costoLaboralVsCompras:
     DashboardCostoLaboralVsCompras;
   coberturaOt: DashboardCoberturaOt;
+  otVsProduccion: DashboardOtVsProduccion;
 }
