@@ -68,6 +68,16 @@ export interface DashboardCostoLaboralVsCompras {
   totalCompras: number;
 }
 
+export interface DashboardCoberturaOt {
+  comparable: boolean;
+  anio: number | null;
+  mes: number | null;
+  horasExtrasAsistencia: number;
+  horasExtrasRemuneradas: number;
+  empleadosAsistencia: number;
+  empleadosRemunerados: number;
+}
+
 export interface DashboardResumen {
   kpis: DashboardKpis;
   periodos: DashboardPeriodos;
@@ -85,4 +95,5 @@ export interface DashboardResumen {
   advertencias: string[];
   costoLaboralVsCompras:
     DashboardCostoLaboralVsCompras;
+  coberturaOt: DashboardCoberturaOt;
 }

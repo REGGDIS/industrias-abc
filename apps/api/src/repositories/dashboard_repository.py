@@ -129,6 +129,68 @@ def obtener_resumen_dashboard():
             remuneraciones = cursor.fetchone()
 
             # ==========================================================
+            # COBERTURA OT ASISTENCIA VS REMUNERACIONES
+            # Último período mensual común entre ambos dominios.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH asistencia_mensual AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fa.horas_extras),
+                            0
+                        ) AS horas_extras_asistencia,
+                        COUNT(
+                            DISTINCT fa.empleado_key
+                        ) AS empleados_asistencia
+                    FROM dw.fact_asistencia fa
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fa.fecha_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                ),
+                remuneraciones_mensual AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fr.horas_extras),
+                            0
+                        ) AS horas_extras_remuneradas,
+                        COUNT(
+                            DISTINCT fr.empleado_key
+                        ) AS empleados_remunerados
+                    FROM dw.fact_remuneraciones fr
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fr.fecha_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                )
+                SELECT
+                    a.anio,
+                    a.mes,
+                    a.horas_extras_asistencia,
+                    r.horas_extras_remuneradas,
+                    a.empleados_asistencia,
+                    r.empleados_remunerados
+                FROM asistencia_mensual a
+                JOIN remuneraciones_mensual r
+                  ON r.anio = a.anio
+                 AND r.mes = a.mes
+                ORDER BY
+                    a.anio DESC,
+                    a.mes DESC
+                LIMIT 1;
+                """
+            )
+
+            cobertura_ot = cursor.fetchone()
+
+            # ==========================================================
             # COMPRAS
             # Último mes disponible.
             # Órdenes anuladas se excluyen de monto y efectivas.
@@ -769,6 +831,47 @@ def obtener_resumen_dashboard():
                 "mes": None,
                 "costoLaboral": 0,
                 "totalCompras": 0,
+            }
+        ),
+        "coberturaOt": (
+            {
+                "comparable": True,
+                "anio": int(
+                    cobertura_ot["anio"]
+                ),
+                "mes": int(
+                    cobertura_ot["mes"]
+                ),
+                "horasExtrasAsistencia": _number(
+                    cobertura_ot[
+                        "horas_extras_asistencia"
+                    ]
+                ),
+                "horasExtrasRemuneradas": _number(
+                    cobertura_ot[
+                        "horas_extras_remuneradas"
+                    ]
+                ),
+                "empleadosAsistencia": int(
+                    cobertura_ot[
+                        "empleados_asistencia"
+                    ]
+                ),
+                "empleadosRemunerados": int(
+                    cobertura_ot[
+                        "empleados_remunerados"
+                    ]
+                ),
+            }
+            if cobertura_ot
+            else {
+                "comparable": False,
+                "anio": None,
+                "mes": None,
+                "horasExtrasAsistencia": 0,
+                "horasExtrasRemuneradas": 0,
+                "empleadosAsistencia": 0,
+                "empleadosRemunerados": 0,
             }
         ),
         "advertencias": [
