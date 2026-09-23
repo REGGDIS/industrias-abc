@@ -450,7 +450,6 @@ export function DashboardPage() {
               icon={Activity}
             />
 
-
             <KpiCard
               title="Órdenes de producción"
               value={
@@ -467,6 +466,27 @@ export function DashboardPage() {
                 )
               }
               icon={Boxes}
+            />
+
+            <KpiCard
+              title="Tasa de rechazo"
+              value={
+                `${data.kpis.tasaRechazoProduccion.toLocaleString(
+                  'es-CL',
+                  {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  },
+                )} %`
+              }
+              helper={
+                'Último mes · '
+                + formatMonth(
+                  data.periodos
+                    .produccion,
+                )
+              }
+              icon={Activity}
             />
           </div>
 

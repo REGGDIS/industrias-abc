@@ -353,7 +353,18 @@ def obtener_resumen_dashboard():
                             SUM(fp.cantidad_producida)
                             / SUM(fp.cantidad_planificada)
                             * 100
-                    END AS cumplimiento
+                    END AS cumplimiento,
+                    CASE
+                        WHEN COALESCE(
+                            SUM(fp.cantidad_producida),
+                            0
+                        ) = 0
+                        THEN 0
+                        ELSE
+                            SUM(fp.cantidad_rechazada)
+                            / SUM(fp.cantidad_producida)
+                            * 100
+                    END AS tasa_rechazo
                 FROM dw.fact_produccion fp
                 JOIN dw.dim_fecha df
                   ON df.fecha_key = fp.fecha_inicio_key
@@ -598,6 +609,11 @@ def obtener_resumen_dashboard():
             ),
             "produccionRechazada": (
                 _number(produccion["rechazada"])
+                if produccion
+                else 0
+            ),
+            "tasaRechazoProduccion": (
+                _number(produccion["tasa_rechazo"])
                 if produccion
                 else 0
             ),

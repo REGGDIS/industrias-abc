@@ -106,6 +106,16 @@ export class DashboardMockService
             produccionPlanificada
           ) * 100;
 
+    const produccionRechazada = 128;
+
+    const tasaRechazoProduccion =
+      produccionReal === 0
+        ? 0
+        : (
+            produccionRechazada /
+            produccionReal
+          ) * 100;
+
     const fechaMock =
       `${periodo.anio}-` +
       `${String(periodo.mes).padStart(
@@ -138,8 +148,9 @@ export class DashboardMockService
 
         produccionPlanificada,
         produccionReal,
-        produccionRechazada: 0,
+        produccionRechazada,
         cumplimientoProduccion,
+        tasaRechazoProduccion,
         ordenesProduccion: 0,
       },
 
