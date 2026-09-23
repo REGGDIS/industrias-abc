@@ -270,6 +270,16 @@ export class DashboardMockService
         empleadosRemunerados: 19,
       },
 
+      otVsProduccion: {
+        comparable: false,
+        anio: null,
+        mes: null,
+        horasExtraRemuneradas: 0,
+        produccionPlanificada: 0,
+        produccionReal: 0,
+        produccionRechazada: 0,
+      },
+
       advertencias: [
         (
           'Modo mock activo: los valores mostrados '

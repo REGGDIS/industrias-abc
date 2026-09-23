@@ -503,6 +503,71 @@ def obtener_resumen_dashboard():
             produccion = cursor.fetchone()
 
             # ==========================================================
+            # OT VS PRODUCCION
+            # Último período mensual común entre Remuneraciones
+            # y Producción.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH remuneraciones_mensual AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fr.horas_extras),
+                            0
+                        ) AS horas_extra_remuneradas
+                    FROM dw.fact_remuneraciones fr
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fr.fecha_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                ),
+                produccion_mensual AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fp.cantidad_planificada),
+                            0
+                        ) AS planificada,
+                        COALESCE(
+                            SUM(fp.cantidad_producida),
+                            0
+                        ) AS producida,
+                        COALESCE(
+                            SUM(fp.cantidad_rechazada),
+                            0
+                        ) AS rechazada
+                    FROM dw.fact_produccion fp
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fp.fecha_inicio_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                )
+                SELECT
+                    r.anio,
+                    r.mes,
+                    r.horas_extra_remuneradas,
+                    p.planificada,
+                    p.producida,
+                    p.rechazada
+                FROM remuneraciones_mensual r
+                JOIN produccion_mensual p
+                  ON p.anio = r.anio
+                 AND p.mes = r.mes
+                ORDER BY
+                    r.anio DESC,
+                    r.mes DESC
+                LIMIT 1;
+                """
+            )
+
+            ot_vs_produccion = cursor.fetchone()
+
+            # ==========================================================
             # COBERTURA REAL DE DATOS
             # ==========================================================
             cursor.execute(
@@ -872,6 +937,47 @@ def obtener_resumen_dashboard():
                 "horasExtrasRemuneradas": 0,
                 "empleadosAsistencia": 0,
                 "empleadosRemunerados": 0,
+            }
+        ),
+        "otVsProduccion": (
+            {
+                "comparable": True,
+                "anio": int(
+                    ot_vs_produccion["anio"]
+                ),
+                "mes": int(
+                    ot_vs_produccion["mes"]
+                ),
+                "horasExtraRemuneradas": _number(
+                    ot_vs_produccion[
+                        "horas_extra_remuneradas"
+                    ]
+                ),
+                "produccionPlanificada": _number(
+                    ot_vs_produccion[
+                        "planificada"
+                    ]
+                ),
+                "produccionReal": _number(
+                    ot_vs_produccion[
+                        "producida"
+                    ]
+                ),
+                "produccionRechazada": _number(
+                    ot_vs_produccion[
+                        "rechazada"
+                    ]
+                ),
+            }
+            if ot_vs_produccion
+            else {
+                "comparable": False,
+                "anio": None,
+                "mes": None,
+                "horasExtraRemuneradas": 0,
+                "produccionPlanificada": 0,
+                "produccionReal": 0,
+                "produccionRechazada": 0,
             }
         ),
         "advertencias": [

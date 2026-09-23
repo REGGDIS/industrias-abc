@@ -831,6 +831,103 @@ export function DashboardPage() {
             />
           )}
 
+          {data.otVsProduccion.comparable ? (
+            <ChartCard
+              title="Horas extra vs Producción"
+              description={
+                `Mismo período · ${
+                  monthNames[
+                    (data.otVsProduccion.mes ?? 1) - 1
+                  ]
+                } ${
+                  data.otVsProduccion.anio
+                }`
+              }
+            >
+              <div className="kpi-grid">
+                <KpiCard
+                  title="Horas extra remuneradas"
+                  value={
+                    `${data.otVsProduccion.horasExtraRemuneradas
+                      .toLocaleString(
+                        'es-CL',
+                        {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 2,
+                        },
+                      )} h`
+                  }
+                  helper="Remuneraciones"
+                  icon={Clock3}
+                />
+
+                <KpiCard
+                  title="Producción real"
+                  value={
+                    numberFormatter.format(
+                      data.otVsProduccion.produccionReal,
+                    )
+                  }
+                  helper="Unidades producidas"
+                  icon={Factory}
+                />
+
+                <KpiCard
+                  title="Producción planificada"
+                  value={
+                    numberFormatter.format(
+                      data.otVsProduccion.produccionPlanificada,
+                    )
+                  }
+                  helper="Unidades planificadas"
+                  icon={Boxes}
+                />
+
+                <KpiCard
+                  title="Producción rechazada"
+                  value={
+                    numberFormatter.format(
+                      data.otVsProduccion.produccionRechazada,
+                    )
+                  }
+                  helper="Unidades rechazadas"
+                  icon={Activity}
+                />
+              </div>
+
+              <AlertCard
+                tone="info"
+                title="Interpretación"
+                description={
+                  'Los indicadores corresponden al mismo mes. '
+                  + 'Su presentación conjunta permite analizar '
+                  + 'el contexto operacional, pero no implica '
+                  + 'por sí sola una relación causal entre '
+                  + 'horas extra y nivel de producción.'
+                }
+              />
+            </ChartCard>
+          ) : (
+            <div
+              style={{
+                marginBottom: '1rem',
+              }}
+            >
+              <AlertCard
+                tone="info"
+                title="Horas extra vs Producción"
+                description={
+                  'No existe un período mensual común entre '
+                  + 'Remuneraciones y Producción. '
+                  + 'Actualmente las horas extra corresponden '
+                  + 'a julio de 2026 y Producción a agosto de 2026. '
+                  + 'La comparación no se muestra para evitar '
+                  + 'relacionar períodos distintos.'
+                }
+              />
+            </div>
+          )}
+
           <ChartCard
             title="Cobertura de datos por dominio"
             description={
