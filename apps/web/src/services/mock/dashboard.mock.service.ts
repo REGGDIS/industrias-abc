@@ -260,6 +260,16 @@ export class DashboardMockService
         totalCompras: 0,
       },
 
+      coberturaOt: {
+        comparable: true,
+        anio: 2026,
+        mes: 7,
+        horasExtrasAsistencia: 4.5,
+        horasExtrasRemuneradas: 56,
+        empleadosAsistencia: 10,
+        empleadosRemunerados: 19,
+      },
+
       advertencias: [
         (
           'Modo mock activo: los valores mostrados '

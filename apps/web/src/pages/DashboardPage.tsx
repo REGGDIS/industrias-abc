@@ -733,6 +733,104 @@ export function DashboardPage() {
             </div>
           </ChartCard>
 
+          {data.coberturaOt.comparable ? (
+            <ChartCard
+              title="Horas extra: Asistencia vs Remuneraciones"
+              description={
+                `Mismo período · ${
+                  monthNames[
+                    (data.coberturaOt.mes ?? 1) - 1
+                  ]
+                } ${
+                  data.coberturaOt.anio
+                }`
+              }
+            >
+              <div className="chart-demo">
+                <ResponsiveContainer
+                  width="100%"
+                  height={280}
+                >
+                  <BarChart
+                    data={[
+                      {
+                        categoria: 'Asistencia',
+                        horas:
+                          data.coberturaOt
+                            .horasExtrasAsistencia,
+                      },
+                      {
+                        categoria: 'Remuneraciones',
+                        horas:
+                          data.coberturaOt
+                            .horasExtrasRemuneradas,
+                      },
+                    ]}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+
+                    <XAxis
+                      dataKey="categoria"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+
+                    <YAxis
+                      tickFormatter={(value) =>
+                        `${Number(value).toLocaleString(
+                          'es-CL',
+                        )} h`
+                      }
+                    />
+
+                    <Tooltip
+                      formatter={(value) =>
+                        `${Number(value).toLocaleString(
+                          'es-CL',
+                          {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 2,
+                          },
+                        )} h`
+                      }
+                    />
+
+                    <Bar
+                      dataKey="horas"
+                      fill="var(--primary)"
+                      radius={[5, 5, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <AlertCard
+                tone="info"
+                title="Cobertura del período"
+                description={
+                  `Asistencia contiene ${
+                    data.coberturaOt.empleadosAsistencia
+                  } empleados y Remuneraciones ${
+                    data.coberturaOt.empleadosRemunerados
+                  }. La diferencia entre horas registradas y remuneradas `
+                  + 'debe interpretarse considerando la cobertura de ambas fuentes.'
+                }
+              />
+            </ChartCard>
+          ) : (
+            <AlertCard
+              tone="info"
+              title="Horas extra: Asistencia vs Remuneraciones"
+              description={
+                'No existe un período mensual común entre '
+                + 'Asistencia y Remuneraciones.'
+              }
+            />
+          )}
+
           <ChartCard
             title="Cobertura de datos por dominio"
             description={
