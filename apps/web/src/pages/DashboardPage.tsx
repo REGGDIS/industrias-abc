@@ -516,6 +516,96 @@ export function DashboardPage() {
             />
           </div>
 
+          {data.costoLaboralVsCompras.comparable ? (
+            <ChartCard
+              title="Costo laboral vs Compras"
+              description={
+                `Comparación del mismo período · ${
+                  monthNames[
+                    (data.costoLaboralVsCompras.mes ?? 1) - 1
+                  ]
+                } ${
+                  data.costoLaboralVsCompras.anio
+                }`
+              }
+            >
+              <div className="chart-demo">
+                <ResponsiveContainer
+                  width="100%"
+                  height={280}
+                >
+                  <BarChart
+                    data={[
+                      {
+                        categoria: 'Costo laboral',
+                        monto:
+                          data.costoLaboralVsCompras
+                            .costoLaboral,
+                      },
+                      {
+                        categoria: 'Compras',
+                        monto:
+                          data.costoLaboralVsCompras
+                            .totalCompras,
+                      },
+                    ]}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+
+                    <XAxis
+                      dataKey="categoria"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+
+                    <YAxis
+                      width={95}
+                      tickFormatter={(value) =>
+                        formatMoney(
+                          Number(value),
+                        )
+                      }
+                    />
+
+                    <Tooltip
+                      formatter={(value) =>
+                        formatMoney(
+                          Number(value),
+                        )
+                      }
+                    />
+
+                    <Bar
+                      dataKey="monto"
+                      fill="var(--primary)"
+                      radius={[5, 5, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartCard>
+          ) : (
+            <div
+              style={{
+                marginBottom: '1rem',
+              }}
+            >
+              <AlertCard
+                tone="info"
+                title="Costo laboral vs Compras"
+                description={
+                  'No existe un período mensual común '
+                  + 'entre Remuneraciones y Compras. '
+                  + 'La comparación no se muestra para '
+                  + 'evitar contrastar períodos distintos.'
+                }
+              />
+            </div>
+          )}
+
           <ChartCard
             title="Principales centros de costo"
             description={

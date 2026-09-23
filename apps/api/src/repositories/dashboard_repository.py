@@ -177,6 +177,63 @@ def obtener_resumen_dashboard():
             compras = cursor.fetchone()
 
             # ==========================================================
+            # COSTO LABORAL VS COMPRAS
+            # Último período mensual común entre ambos dominios.
+            # Si no existe intersección temporal, no se fuerza comparación.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH remuneraciones_mensuales AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fr.costo_empresa),
+                            0
+                        ) AS costo_laboral
+                    FROM dw.fact_remuneraciones fr
+                    JOIN dw.dim_fecha df
+                    ON df.fecha_key = fr.fecha_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                ),
+                compras_mensuales AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fc.total) FILTER (
+                                WHERE fc.estado_oc <> 'ANULADA'
+                            ),
+                            0
+                        ) AS total_compras
+                    FROM dw.fact_compras fc
+                    JOIN dw.dim_fecha df
+                    ON df.fecha_key = fc.fecha_emision_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                )
+                SELECT
+                    r.anio,
+                    r.mes,
+                    r.costo_laboral,
+                    c.total_compras
+                FROM remuneraciones_mensuales r
+                JOIN compras_mensuales c
+                ON c.anio = r.anio
+                AND c.mes = r.mes
+                ORDER BY
+                    r.anio DESC,
+                    r.mes DESC
+                LIMIT 1;
+                """
+            )
+
+            costo_laboral_vs_compras = cursor.fetchone()
+
+            # ==========================================================
             # CONTABILIDAD
             # Último mes disponible.
             #
@@ -685,6 +742,35 @@ def obtener_resumen_dashboard():
         "evolucionMensual":
             evolucion_mensual,
         "cobertura": cobertura,
+        "costoLaboralVsCompras": (
+            {
+                "comparable": True,
+                "anio": int(
+                    costo_laboral_vs_compras["anio"]
+                ),
+                "mes": int(
+                    costo_laboral_vs_compras["mes"]
+                ),
+                "costoLaboral": _number(
+                    costo_laboral_vs_compras[
+                        "costo_laboral"
+                    ]
+                ),
+                "totalCompras": _number(
+                    costo_laboral_vs_compras[
+                        "total_compras"
+                    ]
+                ),
+            }
+            if costo_laboral_vs_compras
+            else {
+                "comparable": False,
+                "anio": None,
+                "mes": None,
+                "costoLaboral": 0,
+                "totalCompras": 0,
+            }
+        ),
         "advertencias": [
             (
                 "Cada dominio usa su último período real disponible; "
