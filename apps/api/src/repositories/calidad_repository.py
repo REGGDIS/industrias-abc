@@ -452,6 +452,15 @@ def obtener_resumen_calidad():
         if control["estado"] == "OK"
     )
 
+    produccion_registros = next(
+        (
+            item["registros"]
+            for item in dominios
+            if item["dominio"] == "PRODUCCION"
+        ),
+        0,
+    )
+
     return {
         "kpis": {
             "registrosEvaluados":
@@ -501,7 +510,7 @@ def obtener_resumen_calidad():
                     "Homologación Producción",
                 "estado": "ADVERTENCIA",
                 "detalle": (
-                    "Los 8 registros de Producción "
+                    f"Los {produccion_registros} registros de Producción "
                     "mantienen Área y Centro de costo "
                     "en clave desconocida."
                 ),
