@@ -156,9 +156,7 @@ export function ProduccionPage() {
   const [
     filters,
     setFilters,
-  ] = useState<BiFilters>({
-    anio: 2026,
-  });
+  ] = useState<BiFilters>({});
 
   const [
     summary,
@@ -184,8 +182,6 @@ export function ProduccionPage() {
   useEffect(() => {
     let active = true;
 
-    setError(null);
-
     Promise.all([
       produccionService.getResumen(
         filters,
@@ -203,12 +199,9 @@ export function ProduccionPage() {
             return;
           }
 
-          setSummary(
-            summaryResult,
-          );
-          setDetail(
-            detailResult,
-          );
+          setSummary(summaryResult);
+          setDetail(detailResult);
+          setError(null);
         },
       )
       .catch((reason) => {

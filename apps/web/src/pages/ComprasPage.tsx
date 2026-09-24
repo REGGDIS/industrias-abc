@@ -139,9 +139,7 @@ const columns: DataTableColumn<CompraDetalle>[] = [
 
 export function ComprasPage() {
   const [filters, setFilters] =
-    useState<BiFilters>({
-      anio: 2026,
-    });
+    useState<BiFilters>({});
 
   const [summary, setSummary] =
     useState<ComprasResumen | null>(

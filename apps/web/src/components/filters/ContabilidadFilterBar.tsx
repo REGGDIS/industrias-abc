@@ -47,33 +47,13 @@ export function ContabilidadFilterBar({
         setCuentasContables(
           catalogos.cuentasContables,
         );
-
-        if (
-          !filters.mes &&
-          catalogos.ultimoPeriodoDisponible
-        ) {
-          onChange({
-            ...filters,
-            anio:
-              catalogos
-                .ultimoPeriodoDisponible
-                .anio,
-            mes:
-              catalogos
-                .ultimoPeriodoDisponible
-                .mes,
-          });
-        }
       },
     );
 
     return () => {
       active = false;
     };
-  }, [
-    filters.anio,
-    filters.mes,
-  ]);
+  }, [filters]);
 
   function updateFilter(
     key:
@@ -88,13 +68,19 @@ export function ContabilidadFilterBar({
         ? undefined
         : Number(rawValue);
 
+    if (key === 'anio') {
+      onChange({
+        ...filters,
+        anio: value,
+        mes: undefined,
+      });
+
+      return;
+    }
+
     onChange({
       ...filters,
       [key]: value,
-      mes:
-        key === 'anio'
-          ? undefined
-          : filters.mes,
     });
   }
 
@@ -157,11 +143,7 @@ export function ContabilidadFilterBar({
       <button
         type="button"
         className="filter-clear-button"
-        onClick={() =>
-          onChange({
-            anio: filters.anio ?? 2025,
-          })
-        }
+        onClick={() => onChange({})}
       >
         <RotateCcw size={16} />
         Limpiar

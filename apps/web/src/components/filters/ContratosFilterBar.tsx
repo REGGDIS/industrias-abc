@@ -45,30 +45,13 @@ export function ContratosFilterBar({
         setTrabajadores(
           catalogos.trabajadores,
         );
-
-        if (
-          !filters.mes &&
-          catalogos.ultimoPeriodoDisponible
-        ) {
-          onChange({
-            ...filters,
-            anio:
-              catalogos.ultimoPeriodoDisponible.anio,
-            mes:
-              catalogos.ultimoPeriodoDisponible.mes,
-          });
-        }
       },
     );
 
     return () => {
       active = false;
     };
-  }, [
-    filters.anio,
-    filters.mes,
-    filters.areaId,
-  ]);
+  }, [filters]);
 
   function updateNumberFilter(
     key: 'anio' | 'mes' | 'areaId',
@@ -153,11 +136,7 @@ export function ContratosFilterBar({
       <button
         type="button"
         className="filter-clear-button"
-        onClick={() =>
-          onChange({
-            anio: filters.anio ?? 2026,
-          })
-        }
+        onClick={() => onChange({})}
       >
         <RotateCcw size={16} />
         Limpiar

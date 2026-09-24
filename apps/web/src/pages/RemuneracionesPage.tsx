@@ -113,9 +113,7 @@ const columns: DataTableColumn<RemuneracionDetalle>[] = [
 
 export function RemuneracionesPage() {
   const [filters, setFilters] =
-    useState<BiFilters>({
-      anio: 2026,
-    });
+    useState<BiFilters>({});
 
   const [summary, setSummary] =
     useState<RemuneracionesResumen | null>(
