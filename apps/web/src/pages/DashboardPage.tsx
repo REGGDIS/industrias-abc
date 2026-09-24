@@ -427,18 +427,17 @@ export function DashboardPage() {
 
 
             <KpiCard
-              title="Movimientos contables"
+              title="Gastos contables"
               value={
-                numberFormatter.format(
-                  data.kpis
-                    .movimientosContables,
+                formatMoney(
+                  data.kpis.gastosContables,
                 )
               }
               helper={
-                'Último mes · '
+                'Último mes con gastos · '
                 + formatMonth(
                   data.periodos
-                    .contabilidad,
+                    .gastosContables,
                 )
               }
               icon={ReceiptText}
