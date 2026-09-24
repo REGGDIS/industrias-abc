@@ -1,30 +1,26 @@
 export interface DashboardKpis {
   totalTrabajadores: number;
   empleadosConAsistencia: number;
-
   horasExtrasAsistencia: number;
   minutosAtraso: number;
   diasAusentes: number;
-
   costoRemuneraciones: number;
   costoHorasExtra: number;
   sueldoLiquido: number;
-
   totalCompras: number;
   ordenesCompra: number;
   ordenesCompraEfectivas: number;
-
   movimientosContables: number;
   totalDebeContabilidad: number;
   totalHaberContabilidad: number;
   saldoContabilidad: number;
-
   produccionPlanificada: number;
   produccionReal: number;
   produccionRechazada: number;
   cumplimientoProduccion: number;
   tasaRechazoProduccion: number;
   ordenesProduccion: number;
+  gastosContables: number;
 }
 
 export interface DashboardPeriodoMes {
@@ -51,6 +47,7 @@ export interface DashboardPeriodos {
   compras: DashboardPeriodoMes | null;
   contabilidad: DashboardPeriodoMes | null;
   produccion: DashboardPeriodoMes | null;
+  gastosContables: DashboardPeriodoMes | null;
 }
 
 export interface DashboardCobertura {
@@ -102,9 +99,13 @@ export interface DashboardResumen {
     DashboardEvolucionMensual[];
 
   cobertura: DashboardCobertura[];
+
   advertencias: string[];
+
   costoLaboralVsCompras:
     DashboardCostoLaboralVsCompras;
+
   coberturaOt: DashboardCoberturaOt;
+
   otVsProduccion: DashboardOtVsProduccion;
 }

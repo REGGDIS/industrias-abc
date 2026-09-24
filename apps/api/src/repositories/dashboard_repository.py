@@ -345,6 +345,52 @@ def obtener_resumen_dashboard():
             contabilidad = cursor.fetchone()
 
             # ==========================================================
+            # GASTOS CONTABLES
+            # Último mes con movimientos en cuentas tipo GASTOS.
+            # No se considera todo el Debe como gasto.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH ultimo_mes_gastos AS (
+                    SELECT
+                        df.anio,
+                        df.mes
+                    FROM dw.fact_contabilidad fc
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fc.fecha_key
+                    JOIN dw.dim_cuenta_contable cta
+                      ON cta.cuenta_key = fc.cuenta_key
+                    WHERE cta.tipo_cuenta = 'GASTOS'
+                    ORDER BY
+                        df.anio DESC,
+                        df.mes DESC
+                    LIMIT 1
+                )
+                SELECT
+                    umg.anio,
+                    umg.mes,
+                    COALESCE(
+                        SUM(fc.debe),
+                        0
+                    ) AS gastos_contables
+                FROM dw.fact_contabilidad fc
+                JOIN dw.dim_fecha df
+                  ON df.fecha_key = fc.fecha_key
+                JOIN dw.dim_cuenta_contable cta
+                  ON cta.cuenta_key = fc.cuenta_key
+                CROSS JOIN ultimo_mes_gastos umg
+                WHERE df.anio = umg.anio
+                  AND df.mes = umg.mes
+                  AND cta.tipo_cuenta = 'GASTOS'
+                GROUP BY
+                    umg.anio,
+                    umg.mes;
+                """
+            )
+
+            gastos_contables = cursor.fetchone()
+
+            # ==========================================================
             # PRINCIPALES CENTROS DE COSTO
             # Último año con cuentas contables de tipo GASTOS.
             # ==========================================================
@@ -820,6 +866,15 @@ def obtener_resumen_dashboard():
                 if produccion
                 else 0
             ),
+            "gastosContables": (
+                _number(
+                    gastos_contables[
+                        "gastos_contables"
+                    ]
+                )
+                if gastos_contables
+                else 0
+            ),
         },
         "periodos": {
             "rrhh": (
@@ -859,6 +914,18 @@ def obtener_resumen_dashboard():
                     "mes": int(produccion["mes"]),
                 }
                 if produccion
+                else None
+            ),
+            "gastosContables": (
+                {
+                    "anio": int(
+                        gastos_contables["anio"]
+                    ),
+                    "mes": int(
+                        gastos_contables["mes"]
+                    ),
+                }
+                if gastos_contables
                 else None
             ),
         },

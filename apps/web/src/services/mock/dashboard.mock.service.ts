@@ -1,13 +1,17 @@
 import {
   dashboardMockRecords,
 } from '../../mocks/dashboard.mock';
+
 import type {
   DashboardResumen,
 } from '../../types/dashboard';
-import type { DashboardService } from '../contracts/dashboard.service';
+
+import type {
+  DashboardService,
+} from '../contracts/dashboard.service';
 
 function sum(
-  values: number[],
+  ...values: number[]
 ): number {
   return values.reduce(
     (total, value) => total + value,
@@ -52,47 +56,49 @@ export class DashboardMockService
     );
 
     const totalTrabajadores = sum(
-      latest.map(
+      ...latest.map(
         (record) =>
           record.totalTrabajadores,
       ),
     );
 
     const trabajadoresActivos = sum(
-      latest.map(
+      ...latest.map(
         (record) =>
           record.trabajadoresActivos,
       ),
     );
 
     const horasExtras = sum(
-      latest.map(
-        (record) => record.horasExtras,
+      ...latest.map(
+        (record) =>
+          record.horasExtras,
       ),
     );
 
     const costoRemuneraciones = sum(
-      latest.map(
+      ...latest.map(
         (record) =>
           record.costoRemuneraciones,
       ),
     );
 
     const totalCompras = sum(
-      latest.map(
-        (record) => record.totalCompras,
+      ...latest.map(
+        (record) =>
+          record.totalCompras,
       ),
     );
 
     const produccionPlanificada = sum(
-      latest.map(
+      ...latest.map(
         (record) =>
           record.produccionPlanificada,
       ),
     );
 
     const produccionReal = sum(
-      latest.map(
+      ...latest.map(
         (record) =>
           record.produccionReal,
       ),
@@ -126,42 +132,69 @@ export class DashboardMockService
     return {
       kpis: {
         totalTrabajadores,
+
         empleadosConAsistencia:
           trabajadoresActivos,
 
         horasExtrasAsistencia:
           horasExtras,
+
         minutosAtraso: 0,
+
         diasAusentes: 0,
 
         costoRemuneraciones,
+
         costoHorasExtra: 782082,
+
         sueldoLiquido: 0,
 
         totalCompras,
+
         ordenesCompra: 0,
+
         ordenesCompraEfectivas: 0,
 
         movimientosContables: 0,
+
         totalDebeContabilidad: 0,
+
         totalHaberContabilidad: 0,
+
         saldoContabilidad: 0,
 
+        gastosContables: 950000,
+
         produccionPlanificada,
+
         produccionReal,
+
         produccionRechazada,
+
         cumplimientoProduccion,
+
         tasaRechazoProduccion,
+
         ordenesProduccion: 0,
       },
 
       periodos: {
         rrhh: fechaMock,
+
         asistencia: fechaMock,
+
         remuneraciones: fechaMock,
+
         compras: periodo,
+
         contabilidad: periodo,
+
         produccion: periodo,
+
+        gastosContables: {
+          anio: 2025,
+          mes: 4,
+        },
       },
 
       principalesCentrosCosto: [
