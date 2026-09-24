@@ -111,9 +111,7 @@ const columns: DataTableColumn<AsistenciaDetalle>[] = [
 
 export function AsistenciaPage() {
   const [filters, setFilters] =
-    useState<BiFilters>({
-      anio: 2026,
-    });
+    useState<BiFilters>({});
 
   const [summary, setSummary] =
     useState<AsistenciaResumen | null>(null);

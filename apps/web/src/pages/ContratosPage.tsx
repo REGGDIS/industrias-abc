@@ -108,9 +108,7 @@ const columns: DataTableColumn<ContratoDetalle>[] = [
 
 export function ContratosPage() {
   const [filters, setFilters] =
-    useState<BiFilters>({
-      anio: 2026,
-    });
+    useState<BiFilters>({});
 
   const [summary, setSummary] =
     useState<ContratosResumen | null>(null);

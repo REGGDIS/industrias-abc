@@ -129,9 +129,7 @@ const columns: DataTableColumn<MovimientoContable>[] = [
 
 export function ContabilidadPage() {
   const [filters, setFilters] =
-    useState<BiFilters>({
-      anio: 2025,
-    });
+    useState<BiFilters>({});
 
   const [summary, setSummary] =
     useState<ContabilidadResumen | null>(
