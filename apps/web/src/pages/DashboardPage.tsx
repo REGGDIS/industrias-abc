@@ -30,6 +30,17 @@ import type {
   DashboardResumen,
 } from '../types/dashboard';
 
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 const numberFormatter =
   new Intl.NumberFormat('es-CL');
@@ -224,8 +235,6 @@ export function DashboardPage() {
   useEffect(() => {
     let active = true;
 
-    setError(null);
-
     dashboardService
       .getResumen()
       .then((result) => {
@@ -308,34 +317,20 @@ export function DashboardPage() {
 
           <div className="kpi-grid">
             <KpiCard
-              title="Trabajadores remunerados"
+              title="Total de trabajadores"
               value={
                 numberFormatter.format(
-                  data.kpis
-                    .trabajadoresActivos,
+                  data.kpis.totalTrabajadores,
                 )
               }
               helper={
-                'Remuneraciones · '
-                + (
-                  data.periodos.remuneraciones
-                    ? `${
-                        monthNames[
-                          Number(
-                            data.periodos.remuneraciones
-                              .split('-')[1],
-                          ) - 1
-                        ]
-                      } ${
-                        data.periodos.remuneraciones
-                          .split('-')[0]
-                      }`
-                    : 'Sin dato'
+                'RRHH · '
+                + formatDate(
+                  data.periodos.rrhh,
                 )
               }
               icon={Users}
             />
-
 
             <KpiCard
               title="Horas extra"
@@ -385,6 +380,33 @@ export function DashboardPage() {
               icon={Banknote}
             />
 
+            <KpiCard
+              title="Costo horas extra"
+              value={
+                formatMoney(
+                  data.kpis.costoHorasExtra,
+                )
+              }
+              helper={
+                'Remuneraciones · '
+                + (
+                  data.periodos.remuneraciones
+                    ? `${
+                        monthNames[
+                          Number(
+                            data.periodos.remuneraciones
+                              .split('-')[1],
+                          ) - 1
+                        ]
+                      } ${
+                        data.periodos.remuneraciones
+                          .split('-')[0]
+                      }`
+                    : 'Sin dato'
+                )
+              }
+              icon={Banknote}
+            />
 
             <KpiCard
               title="Compras"
@@ -405,18 +427,17 @@ export function DashboardPage() {
 
 
             <KpiCard
-              title="Movimientos contables"
+              title="Gastos contables"
               value={
-                numberFormatter.format(
-                  data.kpis
-                    .movimientosContables,
+                formatMoney(
+                  data.kpis.gastosContables,
                 )
               }
               helper={
-                'Último mes · '
+                'Último mes con gastos · '
                 + formatMonth(
                   data.periodos
-                    .contabilidad,
+                    .gastosContables,
                 )
               }
               icon={ReceiptText}
@@ -454,7 +475,6 @@ export function DashboardPage() {
               icon={Activity}
             />
 
-
             <KpiCard
               title="Órdenes de producción"
               value={
@@ -472,8 +492,440 @@ export function DashboardPage() {
               }
               icon={Boxes}
             />
+
+            <KpiCard
+              title="Tasa de rechazo"
+              value={
+                `${data.kpis.tasaRechazoProduccion.toLocaleString(
+                  'es-CL',
+                  {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  },
+                )} %`
+              }
+              helper={
+                'Último mes · '
+                + formatMonth(
+                  data.periodos
+                    .produccion,
+                )
+              }
+              icon={Activity}
+            />
           </div>
 
+          {data.costoLaboralVsCompras.comparable ? (
+            <ChartCard
+              title="Costo laboral vs Compras"
+              description={
+                `Comparación del mismo período · ${
+                  monthNames[
+                    (data.costoLaboralVsCompras.mes ?? 1) - 1
+                  ]
+                } ${
+                  data.costoLaboralVsCompras.anio
+                }`
+              }
+            >
+              <div className="chart-demo">
+                <ResponsiveContainer
+                  width="100%"
+                  height={280}
+                >
+                  <BarChart
+                    data={[
+                      {
+                        categoria: 'Costo laboral',
+                        monto:
+                          data.costoLaboralVsCompras
+                            .costoLaboral,
+                      },
+                      {
+                        categoria: 'Compras',
+                        monto:
+                          data.costoLaboralVsCompras
+                            .totalCompras,
+                      },
+                    ]}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+
+                    <XAxis
+                      dataKey="categoria"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+
+                    <YAxis
+                      width={95}
+                      tickFormatter={(value) =>
+                        formatMoney(
+                          Number(value),
+                        )
+                      }
+                    />
+
+                    <Tooltip
+                      formatter={(value) =>
+                        formatMoney(
+                          Number(value),
+                        )
+                      }
+                    />
+
+                    <Bar
+                      dataKey="monto"
+                      fill="var(--primary)"
+                      radius={[5, 5, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartCard>
+          ) : (
+            <div
+              style={{
+                marginBottom: '1rem',
+              }}
+            >
+              <AlertCard
+                tone="info"
+                title="Costo laboral vs Compras"
+                description={
+                  'No existe un período mensual común '
+                  + 'entre Remuneraciones y Compras. '
+                  + 'La comparación no se muestra para '
+                  + 'evitar contrastar períodos distintos.'
+                }
+              />
+            </div>
+          )}
+
+          <ChartCard
+            title="Principales centros de costo"
+            description={
+              `Gastos contables acumulados · ${
+                data.periodoCentrosCosto
+                  ?? 'Sin período'
+              }`
+            }
+          >
+            <div className="chart-demo">
+              <ResponsiveContainer
+                width="100%"
+                height={280}
+              >
+                <BarChart
+                  data={
+                    data.principalesCentrosCosto
+                  }
+                  layout="vertical"
+                  margin={{
+                    left: 35,
+                    right: 25,
+                  }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    horizontal={false}
+                  />
+
+                  <XAxis
+                    type="number"
+                    tickFormatter={(value) =>
+                      formatMoney(
+                        Number(value),
+                      )
+                    }
+                  />
+
+                  <YAxis
+                    type="category"
+                    dataKey="label"
+                    width={190}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+
+                  <Tooltip
+                    formatter={(value) =>
+                      formatMoney(
+                        Number(value),
+                      )
+                    }
+                  />
+
+                  <Bar
+                    dataKey="value"
+                    fill="var(--primary)"
+                    radius={[0, 5, 5, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          <ChartCard
+            title="Evolución mensual de gastos"
+            description={
+              `Gastos contables por mes · ${
+                data.evolucionMensual[0]?.anio
+                  ?? 'Sin período'
+              }`
+            }
+          >
+            <div className="chart-demo">
+              <ResponsiveContainer
+                width="100%"
+                height={280}
+              >
+                <LineChart
+                  data={data.evolucionMensual}
+                  margin={{
+                    left: 45,
+                    right: 25,
+                    top: 10,
+                  }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                  />
+
+                  <XAxis
+                    dataKey="label"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+
+                  <YAxis
+                    width={95}
+                    tickFormatter={(value) =>
+                      formatMoney(
+                        Number(value),
+                      )
+                    }
+                  />
+
+                  <Tooltip
+                    formatter={(value) =>
+                      formatMoney(
+                        Number(value),
+                      )
+                    }
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="var(--primary)"
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          {data.coberturaOt.comparable ? (
+            <ChartCard
+              title="Horas extra: Asistencia vs Remuneraciones"
+              description={
+                `Mismo período · ${
+                  monthNames[
+                    (data.coberturaOt.mes ?? 1) - 1
+                  ]
+                } ${
+                  data.coberturaOt.anio
+                }`
+              }
+            >
+              <div className="chart-demo">
+                <ResponsiveContainer
+                  width="100%"
+                  height={280}
+                >
+                  <BarChart
+                    data={[
+                      {
+                        categoria: 'Asistencia',
+                        horas:
+                          data.coberturaOt
+                            .horasExtrasAsistencia,
+                      },
+                      {
+                        categoria: 'Remuneraciones',
+                        horas:
+                          data.coberturaOt
+                            .horasExtrasRemuneradas,
+                      },
+                    ]}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+
+                    <XAxis
+                      dataKey="categoria"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+
+                    <YAxis
+                      tickFormatter={(value) =>
+                        `${Number(value).toLocaleString(
+                          'es-CL',
+                        )} h`
+                      }
+                    />
+
+                    <Tooltip
+                      formatter={(value) =>
+                        `${Number(value).toLocaleString(
+                          'es-CL',
+                          {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 2,
+                          },
+                        )} h`
+                      }
+                    />
+
+                    <Bar
+                      dataKey="horas"
+                      fill="var(--primary)"
+                      radius={[5, 5, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <AlertCard
+                tone="info"
+                title="Cobertura del período"
+                description={
+                  `Asistencia contiene ${
+                    data.coberturaOt.empleadosAsistencia
+                  } empleados y Remuneraciones ${
+                    data.coberturaOt.empleadosRemunerados
+                  }. La diferencia entre horas registradas y remuneradas `
+                  + 'debe interpretarse considerando la cobertura de ambas fuentes.'
+                }
+              />
+            </ChartCard>
+          ) : (
+            <AlertCard
+              tone="info"
+              title="Horas extra: Asistencia vs Remuneraciones"
+              description={
+                'No existe un período mensual común entre '
+                + 'Asistencia y Remuneraciones.'
+              }
+            />
+          )}
+
+          {data.otVsProduccion.comparable ? (
+            <ChartCard
+              title="Horas extra vs Producción"
+              description={
+                `Mismo período · ${
+                  monthNames[
+                    (data.otVsProduccion.mes ?? 1) - 1
+                  ]
+                } ${
+                  data.otVsProduccion.anio
+                }`
+              }
+            >
+              <div className="kpi-grid">
+                <KpiCard
+                  title="Horas extra remuneradas"
+                  value={
+                    `${data.otVsProduccion.horasExtraRemuneradas
+                      .toLocaleString(
+                        'es-CL',
+                        {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 2,
+                        },
+                      )} h`
+                  }
+                  helper="Remuneraciones"
+                  icon={Clock3}
+                />
+
+                <KpiCard
+                  title="Producción real"
+                  value={
+                    numberFormatter.format(
+                      data.otVsProduccion.produccionReal,
+                    )
+                  }
+                  helper="Unidades producidas"
+                  icon={Factory}
+                />
+
+                <KpiCard
+                  title="Producción planificada"
+                  value={
+                    numberFormatter.format(
+                      data.otVsProduccion.produccionPlanificada,
+                    )
+                  }
+                  helper="Unidades planificadas"
+                  icon={Boxes}
+                />
+
+                <KpiCard
+                  title="Producción rechazada"
+                  value={
+                    numberFormatter.format(
+                      data.otVsProduccion.produccionRechazada,
+                    )
+                  }
+                  helper="Unidades rechazadas"
+                  icon={Activity}
+                />
+              </div>
+
+              <AlertCard
+                tone="info"
+                title="Interpretación"
+                description={
+                  'Los indicadores corresponden al mismo mes. '
+                  + 'Su presentación conjunta permite analizar '
+                  + 'el contexto operacional, pero no implica '
+                  + 'por sí sola una relación causal entre '
+                  + 'horas extra y nivel de producción.'
+                }
+              />
+            </ChartCard>
+          ) : (
+            <div
+              style={{
+                marginBottom: '1rem',
+              }}
+            >
+              <AlertCard
+                tone="info"
+                title="Horas extra vs Producción"
+                description={
+                  'No existe un período mensual común entre '
+                  + 'Remuneraciones y Producción. '
+                  + 'Actualmente las horas extra corresponden '
+                  + 'a julio de 2026 y Producción a agosto de 2026. '
+                  + 'La comparación no se muestra para evitar '
+                  + 'relacionar períodos distintos.'
+                }
+              />
+            </div>
+          )}
 
           <ChartCard
             title="Cobertura de datos por dominio"

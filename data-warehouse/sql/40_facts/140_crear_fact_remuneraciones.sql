@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS dw.fact_remuneraciones (
 
     sueldo_base NUMERIC(12,2) NOT NULL DEFAULT 0,
     horas_extras NUMERIC(6,2) NOT NULL DEFAULT 0,
+    costo_horas_extra NUMERIC(12,2) NOT NULL DEFAULT 0,
     sueldo_imponible NUMERIC(12,2) NOT NULL DEFAULT 0,
     sueldo_liquido NUMERIC(12,2) NOT NULL DEFAULT 0,
     costo_empresa NUMERIC(12,2) NOT NULL DEFAULT 0,
@@ -128,6 +129,9 @@ CREATE TABLE IF NOT EXISTS dw.fact_remuneraciones (
     CONSTRAINT ck_fact_remuneraciones_horas_extras
         CHECK (horas_extras >= 0),
 
+    CONSTRAINT ck_fact_remuneraciones_costo_horas_extra
+        CHECK (costo_horas_extra >= 0),
+
     CONSTRAINT ck_fact_remuneraciones_sueldo_imponible
         CHECK (sueldo_imponible >= 0),
 
@@ -186,6 +190,9 @@ COMMENT ON COLUMN dw.fact_remuneraciones.sueldo_base IS
 
 COMMENT ON COLUMN dw.fact_remuneraciones.horas_extras IS
 'Cantidad de horas extraordinarias liquidadas en el período.';
+
+COMMENT ON COLUMN dw.fact_remuneraciones.costo_horas_extra IS
+'Costo monetario real de las horas extraordinarias, derivado del concepto HORAS_EXTRA del detalle de liquidación.';
 
 COMMENT ON COLUMN dw.fact_remuneraciones.sueldo_imponible IS
 'Monto imponible informado por la liquidación fuente.';

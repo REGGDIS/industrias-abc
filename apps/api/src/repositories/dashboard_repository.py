@@ -18,6 +18,37 @@ def obtener_resumen_dashboard():
         with connection.cursor() as cursor:
 
             # ==========================================================
+            # RRHH
+            # Dotación total según la última versión disponible
+            # de DIM_EMPLEADO.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH fecha_corte AS (
+                    SELECT MAX(fecha_desde) AS fecha
+                    FROM dw.dim_empleado
+                    WHERE empleado_key <> 0
+                )
+                SELECT
+                    fc.fecha,
+                    COUNT(
+                        DISTINCT e.rut_normalizado
+                    ) AS total_trabajadores
+                FROM fecha_corte fc
+                LEFT JOIN dw.dim_empleado e
+                  ON e.empleado_key <> 0
+                 AND e.fecha_desde <= fc.fecha
+                 AND (
+                        e.fecha_hasta IS NULL
+                        OR fc.fecha < e.fecha_hasta
+                 )
+                GROUP BY fc.fecha;
+                """
+            )
+
+            rrhh = cursor.fetchone()
+
+            # ==========================================================
             # ASISTENCIA
             # Último día disponible.
             # ==========================================================
@@ -81,7 +112,11 @@ def obtener_resumen_dashboard():
                     COALESCE(
                         SUM(fr.horas_extras),
                         0
-                    ) AS horas_extras_remuneradas
+                    ) AS horas_extras_remuneradas,
+                    COALESCE(
+                        SUM(fr.costo_horas_extra),
+                        0
+                    ) AS costo_horas_extra
                 FROM dw.fact_remuneraciones fr
                 JOIN ultimo_periodo up
                   ON up.fecha_key = fr.fecha_key
@@ -92,6 +127,68 @@ def obtener_resumen_dashboard():
             )
 
             remuneraciones = cursor.fetchone()
+
+            # ==========================================================
+            # COBERTURA OT ASISTENCIA VS REMUNERACIONES
+            # Último período mensual común entre ambos dominios.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH asistencia_mensual AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fa.horas_extras),
+                            0
+                        ) AS horas_extras_asistencia,
+                        COUNT(
+                            DISTINCT fa.empleado_key
+                        ) AS empleados_asistencia
+                    FROM dw.fact_asistencia fa
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fa.fecha_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                ),
+                remuneraciones_mensual AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fr.horas_extras),
+                            0
+                        ) AS horas_extras_remuneradas,
+                        COUNT(
+                            DISTINCT fr.empleado_key
+                        ) AS empleados_remunerados
+                    FROM dw.fact_remuneraciones fr
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fr.fecha_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                )
+                SELECT
+                    a.anio,
+                    a.mes,
+                    a.horas_extras_asistencia,
+                    r.horas_extras_remuneradas,
+                    a.empleados_asistencia,
+                    r.empleados_remunerados
+                FROM asistencia_mensual a
+                JOIN remuneraciones_mensual r
+                  ON r.anio = a.anio
+                 AND r.mes = a.mes
+                ORDER BY
+                    a.anio DESC,
+                    a.mes DESC
+                LIMIT 1;
+                """
+            )
+
+            cobertura_ot = cursor.fetchone()
 
             # ==========================================================
             # COMPRAS
@@ -140,6 +237,63 @@ def obtener_resumen_dashboard():
             )
 
             compras = cursor.fetchone()
+
+            # ==========================================================
+            # COSTO LABORAL VS COMPRAS
+            # Último período mensual común entre ambos dominios.
+            # Si no existe intersección temporal, no se fuerza comparación.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH remuneraciones_mensuales AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fr.costo_empresa),
+                            0
+                        ) AS costo_laboral
+                    FROM dw.fact_remuneraciones fr
+                    JOIN dw.dim_fecha df
+                    ON df.fecha_key = fr.fecha_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                ),
+                compras_mensuales AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fc.total) FILTER (
+                                WHERE fc.estado_oc <> 'ANULADA'
+                            ),
+                            0
+                        ) AS total_compras
+                    FROM dw.fact_compras fc
+                    JOIN dw.dim_fecha df
+                    ON df.fecha_key = fc.fecha_emision_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                )
+                SELECT
+                    r.anio,
+                    r.mes,
+                    r.costo_laboral,
+                    c.total_compras
+                FROM remuneraciones_mensuales r
+                JOIN compras_mensuales c
+                ON c.anio = r.anio
+                AND c.mes = r.mes
+                ORDER BY
+                    r.anio DESC,
+                    r.mes DESC
+                LIMIT 1;
+                """
+            )
+
+            costo_laboral_vs_compras = cursor.fetchone()
 
             # ==========================================================
             # CONTABILIDAD
@@ -191,6 +345,140 @@ def obtener_resumen_dashboard():
             contabilidad = cursor.fetchone()
 
             # ==========================================================
+            # GASTOS CONTABLES
+            # Último mes con movimientos en cuentas tipo GASTOS.
+            # No se considera todo el Debe como gasto.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH ultimo_mes_gastos AS (
+                    SELECT
+                        df.anio,
+                        df.mes
+                    FROM dw.fact_contabilidad fc
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fc.fecha_key
+                    JOIN dw.dim_cuenta_contable cta
+                      ON cta.cuenta_key = fc.cuenta_key
+                    WHERE cta.tipo_cuenta = 'GASTOS'
+                    ORDER BY
+                        df.anio DESC,
+                        df.mes DESC
+                    LIMIT 1
+                )
+                SELECT
+                    umg.anio,
+                    umg.mes,
+                    COALESCE(
+                        SUM(fc.debe),
+                        0
+                    ) AS gastos_contables
+                FROM dw.fact_contabilidad fc
+                JOIN dw.dim_fecha df
+                  ON df.fecha_key = fc.fecha_key
+                JOIN dw.dim_cuenta_contable cta
+                  ON cta.cuenta_key = fc.cuenta_key
+                CROSS JOIN ultimo_mes_gastos umg
+                WHERE df.anio = umg.anio
+                  AND df.mes = umg.mes
+                  AND cta.tipo_cuenta = 'GASTOS'
+                GROUP BY
+                    umg.anio,
+                    umg.mes;
+                """
+            )
+
+            gastos_contables = cursor.fetchone()
+
+            # ==========================================================
+            # PRINCIPALES CENTROS DE COSTO
+            # Último año con cuentas contables de tipo GASTOS.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH ultimo_anio_gastos AS (
+                    SELECT MAX(df.anio) AS anio
+                    FROM dw.fact_contabilidad fc
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fc.fecha_key
+                    JOIN dw.dim_cuenta_contable cta
+                      ON cta.cuenta_key = fc.cuenta_key
+                    WHERE cta.tipo_cuenta = 'GASTOS'
+                )
+                SELECT
+                    uag.anio,
+                    dcc.nombre_centro_costo AS label,
+                    COALESCE(
+                        SUM(fc.debe),
+                        0
+                    ) AS value
+                FROM dw.fact_contabilidad fc
+                JOIN dw.dim_fecha df
+                  ON df.fecha_key = fc.fecha_key
+                JOIN dw.dim_cuenta_contable cta
+                  ON cta.cuenta_key = fc.cuenta_key
+                LEFT JOIN dw.dim_centro_costo dcc
+                  ON dcc.centro_costo_key =
+                     fc.centro_costo_key
+                CROSS JOIN ultimo_anio_gastos uag
+                WHERE df.anio = uag.anio
+                  AND cta.tipo_cuenta = 'GASTOS'
+                GROUP BY
+                    uag.anio,
+                    fc.centro_costo_key,
+                    dcc.nombre_centro_costo
+                ORDER BY value DESC
+                LIMIT 5;
+                """
+            )
+
+            centros_costo_rows = cursor.fetchall()
+
+            # ==========================================================
+            # EVOLUCIÓN MENSUAL DE GASTOS
+            # Último año con cuentas contables de tipo GASTOS.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH ultimo_anio_gastos AS (
+                    SELECT MAX(df.anio) AS anio
+                    FROM dw.fact_contabilidad fc
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fc.fecha_key
+                    JOIN dw.dim_cuenta_contable cta
+                      ON cta.cuenta_key = fc.cuenta_key
+                    WHERE cta.tipo_cuenta = 'GASTOS'
+                )
+                SELECT
+                    uag.anio,
+                    df.mes,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN cta.tipo_cuenta = 'GASTOS'
+                                THEN fc.debe
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS value
+                FROM dw.fact_contabilidad fc
+                JOIN dw.dim_fecha df
+                  ON df.fecha_key = fc.fecha_key
+                JOIN dw.dim_cuenta_contable cta
+                  ON cta.cuenta_key = fc.cuenta_key
+                CROSS JOIN ultimo_anio_gastos uag
+                WHERE df.anio = uag.anio
+                GROUP BY
+                    uag.anio,
+                    df.mes
+                ORDER BY df.mes;
+                """
+            )
+
+            evolucion_mensual_rows = cursor.fetchall()
+
+            # ==========================================================
             # PRODUCCIÓN
             # Último mes disponible según fecha de inicio.
             # ==========================================================
@@ -234,7 +522,18 @@ def obtener_resumen_dashboard():
                             SUM(fp.cantidad_producida)
                             / SUM(fp.cantidad_planificada)
                             * 100
-                    END AS cumplimiento
+                    END AS cumplimiento,
+                    CASE
+                        WHEN COALESCE(
+                            SUM(fp.cantidad_producida),
+                            0
+                        ) = 0
+                        THEN 0
+                        ELSE
+                            SUM(fp.cantidad_rechazada)
+                            / SUM(fp.cantidad_producida)
+                            * 100
+                    END AS tasa_rechazo
                 FROM dw.fact_produccion fp
                 JOIN dw.dim_fecha df
                   ON df.fecha_key = fp.fecha_inicio_key
@@ -248,6 +547,71 @@ def obtener_resumen_dashboard():
             )
 
             produccion = cursor.fetchone()
+
+            # ==========================================================
+            # OT VS PRODUCCION
+            # Último período mensual común entre Remuneraciones
+            # y Producción.
+            # ==========================================================
+            cursor.execute(
+                """
+                WITH remuneraciones_mensual AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fr.horas_extras),
+                            0
+                        ) AS horas_extra_remuneradas
+                    FROM dw.fact_remuneraciones fr
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fr.fecha_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                ),
+                produccion_mensual AS (
+                    SELECT
+                        df.anio,
+                        df.mes,
+                        COALESCE(
+                            SUM(fp.cantidad_planificada),
+                            0
+                        ) AS planificada,
+                        COALESCE(
+                            SUM(fp.cantidad_producida),
+                            0
+                        ) AS producida,
+                        COALESCE(
+                            SUM(fp.cantidad_rechazada),
+                            0
+                        ) AS rechazada
+                    FROM dw.fact_produccion fp
+                    JOIN dw.dim_fecha df
+                      ON df.fecha_key = fp.fecha_inicio_key
+                    GROUP BY
+                        df.anio,
+                        df.mes
+                )
+                SELECT
+                    r.anio,
+                    r.mes,
+                    r.horas_extra_remuneradas,
+                    p.planificada,
+                    p.producida,
+                    p.rechazada
+                FROM remuneraciones_mensual r
+                JOIN produccion_mensual p
+                  ON p.anio = r.anio
+                 AND p.mes = r.mes
+                ORDER BY
+                    r.anio DESC,
+                    r.mes DESC
+                LIMIT 1;
+                """
+            )
+
+            ot_vs_produccion = cursor.fetchone()
 
             # ==========================================================
             # COBERTURA REAL DE DATOS
@@ -350,11 +714,56 @@ def obtener_resumen_dashboard():
         for row in cobertura_rows
     ]
 
+    principales_centros_costo = [
+        {
+            "label": (
+                row["label"]
+                or "Sin centro de costo"
+            ),
+            "value": _number(row["value"]),
+        }
+        for row in centros_costo_rows
+    ]
+
+    anio_centros_costo = (
+        int(centros_costo_rows[0]["anio"])
+        if centros_costo_rows
+        else None
+    )
+
+    nombres_meses = [
+        "Ene",
+        "Feb",
+        "Mar",
+        "Abr",
+        "May",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dic",
+    ]
+
+    evolucion_mensual = [
+        {
+            "anio": int(row["anio"]),
+            "mes": int(row["mes"]),
+            "label": (
+                f"{nombres_meses[int(row['mes']) - 1]} "
+                f"{int(row['anio'])}"
+            ),
+            "value": _number(row["value"]),
+        }
+        for row in evolucion_mensual_rows
+    ]
+
     return {
         "kpis": {
-            "trabajadoresActivos": (
-                int(remuneraciones["empleados"])
-                if remuneraciones
+            "totalTrabajadores": (
+                int(rrhh["total_trabajadores"])
+                if rrhh
                 else 0
             ),
             "empleadosConAsistencia": (
@@ -379,6 +788,11 @@ def obtener_resumen_dashboard():
             ),
             "costoRemuneraciones": (
                 _number(remuneraciones["costo_empresa"])
+                if remuneraciones
+                else 0
+            ),
+            "costoHorasExtra": (
+                _number(remuneraciones["costo_horas_extra"])
                 if remuneraciones
                 else 0
             ),
@@ -437,6 +851,11 @@ def obtener_resumen_dashboard():
                 if produccion
                 else 0
             ),
+            "tasaRechazoProduccion": (
+                _number(produccion["tasa_rechazo"])
+                if produccion
+                else 0
+            ),
             "cumplimientoProduccion": (
                 _number(produccion["cumplimiento"])
                 if produccion
@@ -447,8 +866,22 @@ def obtener_resumen_dashboard():
                 if produccion
                 else 0
             ),
+            "gastosContables": (
+                _number(
+                    gastos_contables[
+                        "gastos_contables"
+                    ]
+                )
+                if gastos_contables
+                else 0
+            ),
         },
         "periodos": {
+            "rrhh": (
+                rrhh["fecha"].isoformat()
+                if rrhh and rrhh["fecha"]
+                else None
+            ),
             "asistencia": (
                 asistencia["fecha"].isoformat()
                 if asistencia
@@ -483,8 +916,137 @@ def obtener_resumen_dashboard():
                 if produccion
                 else None
             ),
+            "gastosContables": (
+                {
+                    "anio": int(
+                        gastos_contables["anio"]
+                    ),
+                    "mes": int(
+                        gastos_contables["mes"]
+                    ),
+                }
+                if gastos_contables
+                else None
+            ),
         },
+        "principalesCentrosCosto":
+            principales_centros_costo,
+        "periodoCentrosCosto":
+            anio_centros_costo,
+        "evolucionMensual":
+            evolucion_mensual,
         "cobertura": cobertura,
+        "costoLaboralVsCompras": (
+            {
+                "comparable": True,
+                "anio": int(
+                    costo_laboral_vs_compras["anio"]
+                ),
+                "mes": int(
+                    costo_laboral_vs_compras["mes"]
+                ),
+                "costoLaboral": _number(
+                    costo_laboral_vs_compras[
+                        "costo_laboral"
+                    ]
+                ),
+                "totalCompras": _number(
+                    costo_laboral_vs_compras[
+                        "total_compras"
+                    ]
+                ),
+            }
+            if costo_laboral_vs_compras
+            else {
+                "comparable": False,
+                "anio": None,
+                "mes": None,
+                "costoLaboral": 0,
+                "totalCompras": 0,
+            }
+        ),
+        "coberturaOt": (
+            {
+                "comparable": True,
+                "anio": int(
+                    cobertura_ot["anio"]
+                ),
+                "mes": int(
+                    cobertura_ot["mes"]
+                ),
+                "horasExtrasAsistencia": _number(
+                    cobertura_ot[
+                        "horas_extras_asistencia"
+                    ]
+                ),
+                "horasExtrasRemuneradas": _number(
+                    cobertura_ot[
+                        "horas_extras_remuneradas"
+                    ]
+                ),
+                "empleadosAsistencia": int(
+                    cobertura_ot[
+                        "empleados_asistencia"
+                    ]
+                ),
+                "empleadosRemunerados": int(
+                    cobertura_ot[
+                        "empleados_remunerados"
+                    ]
+                ),
+            }
+            if cobertura_ot
+            else {
+                "comparable": False,
+                "anio": None,
+                "mes": None,
+                "horasExtrasAsistencia": 0,
+                "horasExtrasRemuneradas": 0,
+                "empleadosAsistencia": 0,
+                "empleadosRemunerados": 0,
+            }
+        ),
+        "otVsProduccion": (
+            {
+                "comparable": True,
+                "anio": int(
+                    ot_vs_produccion["anio"]
+                ),
+                "mes": int(
+                    ot_vs_produccion["mes"]
+                ),
+                "horasExtraRemuneradas": _number(
+                    ot_vs_produccion[
+                        "horas_extra_remuneradas"
+                    ]
+                ),
+                "produccionPlanificada": _number(
+                    ot_vs_produccion[
+                        "planificada"
+                    ]
+                ),
+                "produccionReal": _number(
+                    ot_vs_produccion[
+                        "producida"
+                    ]
+                ),
+                "produccionRechazada": _number(
+                    ot_vs_produccion[
+                        "rechazada"
+                    ]
+                ),
+            }
+            if ot_vs_produccion
+            else {
+                "comparable": False,
+                "anio": None,
+                "mes": None,
+                "horasExtraRemuneradas": 0,
+                "produccionPlanificada": 0,
+                "produccionReal": 0,
+                "produccionRechazada": 0,
+            }
+        ),
         "advertencias": [
             (
                 "Cada dominio usa su último período real disponible; "
