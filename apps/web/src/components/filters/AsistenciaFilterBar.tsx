@@ -45,30 +45,13 @@ export function AsistenciaFilterBar({
         setTrabajadores(
           catalogos.trabajadores,
         );
-
-        if (
-          !filters.mes &&
-          catalogos.ultimoPeriodoDisponible
-        ) {
-          onChange({
-            ...filters,
-            anio:
-              catalogos.ultimoPeriodoDisponible.anio,
-            mes:
-              catalogos.ultimoPeriodoDisponible.mes,
-          });
-        }
       },
     );
 
     return () => {
       active = false;
     };
-  }, [
-    filters.anio,
-    filters.mes,
-    filters.areaId,
-  ]);
+  }, [filters]);
 
   function updateNumberFilter(
     key: 'anio' | 'mes' | 'areaId',

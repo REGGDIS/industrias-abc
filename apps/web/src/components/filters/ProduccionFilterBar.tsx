@@ -52,33 +52,12 @@ export function ProduccionFilterBar({
       }
 
       setCatalogos(result);
-
-      if (
-        filters.mes == null &&
-        result
-          .ultimoPeriodoDisponible
-      ) {
-        onChange({
-          ...filters,
-          anio:
-            result
-              .ultimoPeriodoDisponible
-              .anio,
-          mes:
-            result
-              .ultimoPeriodoDisponible
-              .mes,
-        });
-      }
     });
 
     return () => {
       active = false;
     };
-  }, [
-    filters.anio,
-    filters.mes,
-  ]);
+  }, [filters]);
 
   function updateNumericFilter(
     key:
@@ -121,11 +100,7 @@ export function ProduccionFilterBar({
   }
 
   function clearFilters() {
-    onChange({
-      anio:
-        filters.anio ??
-        2026,
-    });
+    onChange({});
   }
 
   return (

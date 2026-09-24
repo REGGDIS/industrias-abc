@@ -44,33 +44,13 @@ export function ComprasFilterBar({
         }
 
         setCatalogos(result);
-
-        if (
-          filters.mes == null &&
-          result.ultimoPeriodoDisponible
-        ) {
-          onChange({
-            ...filters,
-            anio:
-              result
-                .ultimoPeriodoDisponible
-                .anio,
-            mes:
-              result
-                .ultimoPeriodoDisponible
-                .mes,
-          });
-        }
       },
     );
 
     return () => {
       active = false;
     };
-  }, [
-    filters.anio,
-    filters.mes,
-  ]);
+  }, [filters]);
 
   function updateFilter(
     key: keyof BiFilters,
@@ -98,9 +78,7 @@ export function ComprasFilterBar({
   }
 
   function clearFilters() {
-    onChange({
-      anio: filters.anio ?? 2026,
-    });
+    onChange({});
   }
 
   return (
